@@ -1,0 +1,9 @@
+node_modules/
+target/
+prod-resources/
+resources/public/
+.clj-kondo/.cache/
+.lsp/
+.claude/
+.nrepl-port
+.cpcache/
