@@ -1,0 +1,15 @@
+{:env :dev
+ :app-title "Security Reminder"
+ :log-level :info
+ :management-portal-url-base "http://localhost:3000"
+
+ :system
+ {:dev.freeformsoftware.security-reminder.logging-conf/logging-conf
+  {:log-level #n/ref :log-level}
+
+  :dev.freeformsoftware.security-reminder.server.core/server
+  {:jetty {:port 3000}
+   :env #n/ref :env
+   :app-title #n/ref :app-title
+   :jwt-secret #n/ref :jwt-secret
+   :management-portal-url-base #n/ref :management-portal-url-base}}}
