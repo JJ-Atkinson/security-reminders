@@ -13,24 +13,25 @@
         ring/ring-jetty-adapter                     {:mvn/version "1.15.3"}
         integrant/integrant                         {:mvn/version "1.0.1"}
 
-        buddy/buddy-core                            {:mvn/version "1.12.0-430"}
-        buddy/buddy-sign                            {:mvn/version "3.6.1-359"}
-        buddy/buddy-hashers                         {:mvn/version "2.0.167"}
         metosin/malli                               {:mvn/version "0.19.2"}
         org.clojure/clojure                         {:mvn/version "1.12.3"}
         com.taoensso/telemere-slf4j                 {:mvn/version "1.1.0"}
-        better-cond/better-cond                     {:mvn/version "2.1.5"}}
+        better-cond/better-cond                     {:mvn/version "2.1.5"}
+
+        zprint/zprint                               {:mvn/version "1.2.9"}
+        org.clj-commons/clj-http-lite               {:mvn/version "1.0.13"}
+        com.fulcrologic/guardrails                 {:mvn/version "1.2.5"}
+        io.github.nextjournal/garden-cron           {:git/sha "2873ed17337b2e00d4f776b8093832c1f490a46e"}}
  :aliases
- {:build {:deps       {io.github.clojure/tools.build
-                       {:exclusions  [com.google.guava/guava]
-                        :mvn/version "0.9.6"}}
-          :ns-default build
-          :jvm-opts   ["-Xss2m"
-                       "-XX:-OmitStackTraceInFastThrow"]
-          :paths      ["src/build"]}
-  :dev   {:extra-paths ["src/dev" "src/test" "resources"]
+ {:dev   {:extra-paths ["src/dev" "src/test" "resources"]
           :extra-deps
           {djblue/portal {:mvn/version "0.58.5"}
            io.github.tonsky/clj-reload {:mvn/version "0.7.0"}
            refactor-nrepl/refactor-nrepl {:mvn/version "3.11.0"}
-           cider/cider-nrepl {:mvn/version "0.58.0"}}}}}
+           cider/cider-nrepl {:mvn/version "0.58.0"}}}
+  :test  {:extra-paths ["src/test"]
+          :extra-deps  {lambdaisland/kaocha {:mvn/version "1.91.1392"}}
+          :main-opts   ["-m" "kaocha.runner"]}
+  :nextjournal/garden {:exec-fn dev.freeformsoftware.security-reminder.run.prod/start-garden!
+                       :exec-args {:port 7777}
+                       :extra-paths ["resources"]}}}

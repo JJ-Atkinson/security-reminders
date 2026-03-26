@@ -1,0 +1,5 @@
+{:env :prod
+ :base-url "https://security-reminder.application.garden"
+ :system
+ {:dev.freeformsoftware.security-reminder.server.core/server
+  {:jetty {:port 7777}}}}

@@ -1,15 +1,46 @@
 {:env :dev
  :app-title "Security Reminder"
  :log-level :info
- :management-portal-url-base "http://localhost:3000"
+ :base-url "http://localhost:3000"
+ :db-folder "data"
+
+ :people [{:id "p1" :name "Alice" :phone "+15551234567" :admin? false}
+          {:id "p2" :name "Bob" :phone "+15551234568" :admin? false}
+          {:id "p3" :name "Carol" :phone "+15551234569" :admin? false}
+          {:id "p4" :name "Dave" :phone "+15551234570" :admin? false}
+          {:id "p5" :name "Eve" :phone "+15551234571" :admin? false}
+          {:id "p6" :name "Frank" :phone "+15551234572" :admin? false}
+          {:id "p7" :name "Grace" :phone "+15551234573" :admin? false}
+          {:id "p8" :name "Heidi" :phone "+15551234574" :admin? false}
+          {:id "p9" :name "Ivan" :phone "+15551234575" :admin? false}
+          {:id "p10" :name "Jarrett" :phone "+15559876543" :admin? true}]
+
+ :twilio-account-sid #n/ref :twilio-account-sid
+ :twilio-auth-token #n/ref :twilio-auth-token
+ :twilio-from-number #n/ref :twilio-from-number
 
  :system
  {:dev.freeformsoftware.security-reminder.logging-conf/logging-conf
   {:log-level #n/ref :log-level}
 
+  :dev.freeformsoftware.security-reminder.schedule.engine/engine
+  {:db-folder #n/ref :db-folder
+   :people #n/ref :people
+   :twilio-conf {:twilio-account-sid #n/ref :twilio-account-sid
+                 :twilio-auth-token #n/ref :twilio-auth-token
+                 :twilio-from-number #n/ref :twilio-from-number
+                 :twilio-mock? #n/ref :twilio-mock?}
+   :base-url #n/ref :base-url
+   :notify-at-days-before [8 1]}
+
+  :dev.freeformsoftware.security-reminder.schedule.time-layer/time-layer
+  {:engine #ig/ref :dev.freeformsoftware.security-reminder.schedule.engine/engine
+   :delay-minutes 10}
+
   :dev.freeformsoftware.security-reminder.server.core/server
   {:jetty {:port 3000}
    :env #n/ref :env
    :app-title #n/ref :app-title
-   :jwt-secret #n/ref :jwt-secret
-   :management-portal-url-base #n/ref :management-portal-url-base}}}
+   :base-url #n/ref :base-url
+   :time-layer #ig/ref :dev.freeformsoftware.security-reminder.schedule.time-layer/time-layer
+   :logging #ig/ref :dev.freeformsoftware.security-reminder.logging-conf/logging-conf}}}

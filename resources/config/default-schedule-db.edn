@@ -1,0 +1,10 @@
+{:event-templates [{:id "et-1" :label "Wed Evening" :day-of-week 3 :time-label :evening :people-required 2}
+                   {:id "et-2" :label "Sun Morning" :day-of-week 7 :time-label :morning :people-required 2}
+                   {:id "et-3" :label "Sun Evening" :day-of-week 7 :time-label :evening :people-required 2}]
+ :one-off-events []
+ :absences []
+ :sent-notifications []
+ :instance-overrides []
+ :assignment-overrides []
+ :sec-tokens {}
+ :people []}

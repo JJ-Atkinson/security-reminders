@@ -1,0 +1,4 @@
+{:throw? true
+ :tap>? true
+ :guardrails/compact? true
+ :guardrails/stack-trace :none}

@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+DATE=$(date +%Y-%m-%d)
+
+# 1. Build minified resources
+echo "==> Building resources..."
+bin/build-resources
+
+# 2. Update CHANGELOG.md: promote Unreleased to today's date
+if ! grep -q "^## Unreleased" CHANGELOG.md; then
+  echo "ERROR: No '## Unreleased' section found in CHANGELOG.md"
+  exit 1
+fi
+
+UNRELEASED_CONTENT=$(sed -n '/^## Unreleased$/,/^## /{/^## /!p}' CHANGELOG.md)
+if [ -z "$(echo "$UNRELEASED_CONTENT" | tr -d '[:space:]')" ]; then
+  echo "ERROR: No changes listed under '## Unreleased' in CHANGELOG.md"
+  exit 1
+fi
+
+echo "==> Promoting Unreleased to $DATE..."
+sed -i "s/^## Unreleased$/## Unreleased\n\n## $DATE/" CHANGELOG.md
+
+# 3. Build commit message from the promoted changelog entries
+CHANGES=$(echo "$UNRELEASED_CONTENT" | sed '/^$/d' | head -5)
+COMMIT_MSG=$(cat <<EOF
+Deploy $DATE
+
+$CHANGES
+EOF
+)
+
+# 4. Stage and commit
+echo "==> Committing..."
+git add -A
+git commit -m "$COMMIT_MSG"
+
+# 5. Deploy to Garden
+echo "==> Deploying to Garden..."
+garden deploy

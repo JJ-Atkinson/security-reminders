@@ -1,0 +1,2 @@
+{:project "security-reminder"
+ :deploy-strategy :restart}

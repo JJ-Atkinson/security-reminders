@@ -1,0 +1,20 @@
+{:lint-as
+ {dev.freeformsoftware.security-reminder.schedule.engine/with-state!-> clojure.core/->
+  com.fulcrologic.guardrails.malli.core/>defn clojure.core/defn
+  com.fulcrologic.guardrails.malli.core/>defn- clojure.core/defn}
+
+ :linters
+ {:clojure-lsp/unused-public-var
+  {:exclude
+   #{;; Garden deployment entry point (called externally)
+     dev.freeformsoftware.security-reminder.run.prod/start-garden!
+     ;; Lifecycle counterpart to start-cron!
+     dev.freeformsoftware.security-reminder.cron/stop-cron!
+     ;; Schema definition used for documentation/validation
+     dev.freeformsoftware.security-reminder.db.schema/Plan
+     ;; Dev REPL utility
+     user/portal}}}
+
+ :config-in-ns
+ {dev.freeformsoftware.security-reminder.ui.html-fragments
+  {:linters {:clojure-lsp/unused-public-var {:level :off}}}}}

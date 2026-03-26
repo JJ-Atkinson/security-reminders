@@ -1,21 +1,22 @@
 (ns dev.freeformsoftware.security-reminder.ui.html-fragments
-  (:require
-   [hiccup2.core :as h]
-   [hiccup.page :as page]))
+  (:require [hiccup2.core :as h]))
 
 (set! *warn-on-reflection* true)
 
 (defn html-body
   "Wrapper for full HTML page with CSS, JS, and body content"
-  [{:keys [env] :as conf} & body]
-  [:html
-   [:head
-    [:meta {:charset "UTF-8"}]
-    [:meta {:name "viewport" :content "width=device-width, initial-scale=1.0"}]
-    [:link {:rel "stylesheet" :href "/css/output.css"}]
-    [:script {:src "/js/bundle.js"}]
-    (when (= env :dev) [:script {:src "/js/dev-ws.js" :defer true}])]
-   [:body body]])
+  [{:keys [env]} & body]
+  (h/html
+   (h/raw "<!DOCTYPE html>\n")
+   [:html
+    [:head
+     [:meta {:charset "UTF-8"}]
+     [:meta {:name "viewport" :content "width=device-width, initial-scale=1.0, viewport-fit=cover"}]
+     [:meta {:name "robots" :content "noindex, nofollow"}]
+     [:link {:rel "stylesheet" :href "/css/output.css"}]
+     [:script {:src "/js/bundle.js"}]
+     (when (= env :dev) [:script {:src "/js/dev-ws.js" :defer true}])]
+    [:body body]]))
 
 (defn background
   "Includes CSRF for HTMX"
@@ -23,6 +24,9 @@
   [:div.bg-orange-50.flex.flex-row.items-stretch.h-screen.relative
    body
    [:div#modal-container.absolute]])
+
+(def accordion-exclusive-script
+  "on toggle if my.open for d in <details/> in my parentElement if d is not me set d.open to false end end")
 
 (def mobile-sidebar-open-script
   "on click
@@ -43,7 +47,7 @@
 (defn page-with-sidebar
   [header sidebar body]
   (background
-   [:div.flex.flex-col.h-full.flex-1
+   [:div.flex.flex-col.h-full.flex-1.min-w-0
     ;; Header: hamburger (mobile), title (center), spacer (mobile)
     [:div.grid.items-center.bg-orange-50.border-b-2.border-slate-900
      {:class "grid-cols-[auto_1fr_auto] md:grid-cols-1"}
@@ -62,7 +66,7 @@
        {:_ mobile-sidebar-close-script} "✕"]
       [:div.md:hidden.h-20]
       [:div.flex-1.overflow-y-auto.overscroll-contain sidebar]]
-     [:div.flex-1.overflow-y-auto body]]]))
+     [:div.flex-1.overflow-y-auto.min-w-0 body]]]))
 
 (defn sidebar
   [center
@@ -89,6 +93,9 @@
 (def input-classes
   ["border-2"
    "border-gray-300"
+   "bg-white"
+   "rounded-none"
+   "appearance-none"
 
    "w-full"
    "p-1"
@@ -102,6 +109,9 @@
    "px-2"
    "hover:border-teal-800"
    "hover:bg-teal-200"])
+
+(def small-button-classes
+  ["text-xs" "whitespace-nowrap" "font-bold" "border-2" "py-1" "px-2"])
 
 (def cancel-button-classes
   ["bg-slate-700"
@@ -245,7 +255,7 @@
       (not name)        (assoc :name id))
     input-body]])
 
-(defn no-jwt-landing-page
+(defn unauthorized-landing-page
   [conf]
   (html-body
    conf

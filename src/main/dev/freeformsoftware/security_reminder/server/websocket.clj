@@ -16,7 +16,8 @@
     (try
       (ws/send client message)
       (catch Exception e
-        (tel/error! "Failed to send websocket message" {:error e})))))
+        (swap! clients disj client)
+        (tel/error! "Failed to send websocket message" e)))))
 
 (defn reload-handler
   "WebSocket handler for dev reload"
@@ -24,17 +25,17 @@
   (assert (ws/upgrade-request? req))
   {::ws/listener {:on-open    (fn [socket]
                                 (swap! clients conj socket)
-                                (tel/log! :info "WebSocket client connected"))
+                                #_(tel/log! :info "WebSocket client connected"))
 
-                  :on-message (fn [socket message]
-                                (tel/log! :debug ["WebSocket message received:" message]))
+                  :on-message (fn [_socket message]
+                                (tel/log! {:level :debug :data {:message message}} "WebSocket message received"))
 
-                  :on-close   (fn [socket status-code reason]
+                  :on-close   (fn [socket _status-code _reason]
                                 (swap! clients disj socket)
-                                (tel/log! :info
+                                #_(tel/log! :info
                                           ["WebSocket client disconnected"
-                                           {:status status-code :reason reason}]))
+                                           {:status _status-code :reason _reason}]))
 
                   :on-error   (fn [socket error]
                                 (swap! clients disj socket)
-                                (tel/error! "WebSocket error" {:error error}))}})
+                                (tel/error! "WebSocket error" error))}})

@@ -1,9 +1,37 @@
+# Build / dependency artifacts
 node_modules/
 target/
-prod-resources/
-resources/public/
-.clj-kondo/.cache/
-.lsp/
-.claude/
-.nrepl-port
 .cpcache/
+
+# Generated assets
+prod-resources/
+resources/config/zprintrc.edn
+resources/public/
+
+# Runtime data
+data/
+
+# Secrets
+resources/config/secrets.edn
+
+# Local dev overrides
+deps.local.edn
+
+# IDE / editor
+.vscode/
+.calva/
+.portal/
+
+# Clojure tooling
+.clj-kondo/.cache/
+.clj-kondo/imports/
+.lsp/
+.nrepl-port
+
+# Nix / direnv
+.direnv/
+
+# MCP / Claude
+.clojure-mcp/
+.mcp.json
+.claude/

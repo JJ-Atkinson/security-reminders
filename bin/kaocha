@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+clojure -J-Dguardrails.enabled -M:dev:test "$@"
