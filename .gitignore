@@ -6,7 +6,8 @@ target/
 # Generated assets
 prod-resources/
 resources/config/zprintrc.edn
-resources/public/
+resources/public/js/bundle.js.map
+resources/public/js/dev-ws.js
 
 # Runtime data
 data/
