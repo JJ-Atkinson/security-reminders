@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2026-03-26
+
 - Fix build to properly add in built artifacts from tailwind and htmx
 - Initial release: schedule engine, SMS reminders, HTMX UI
 - Application Garden deployment support
