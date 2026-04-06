@@ -12,6 +12,7 @@
    [dev.freeformsoftware.security-reminder.patches.huff-malli] ;; patch huff 0.1.x for malli 0.19.x compat
    [dev.freeformsoftware.security-reminder.push.send :as push.send]
    [dev.freeformsoftware.security-reminder.schedule.ops :as ops]
+   [dev.freeformsoftware.security-reminder.schedule.projection :as proj]
    [dev.freeformsoftware.security-reminder.schedule.reminders :as reminders]
    [integrant.core :as ig]
    [nextjournal.garden-email :as garden-email]
@@ -176,19 +177,23 @@
         link           (str base-url "/" token "/schedule")
         reminder-group (:reminder-group action)
         people-list    (get-in state [:schedule-db :people])
-        email-msg      (reminders/format-reminder-email
-                        person (:event-label action) (:event-date action)
-                        link reminder-group
-                        (:schedule-plan state) people-list)]
-    (send-email! person email-msg)
-    (tel/log! {:level :info
-               :data  {:person (:name person) :event (:event-label action) :group reminder-group}}
-              "Reminder email sent")
-    (try-send-push state env person-id
-                   {:title "Security Reminder"
-                    :body  (str "You're assigned to " (:event-label action) " on " (:event-date action))
-                    :icon  "/icons/icon-192.png"
-                    :url   link})))
+        send-email?    (get person :notifications/send-via-email? true)
+        send-push?     (get person :notifications/send-via-push? true)]
+    (when send-email?
+      (let [email-msg (reminders/format-reminder-email
+                       person (:event-label action) (:event-date action)
+                       link reminder-group
+                       (:schedule-plan state) people-list)]
+        (send-email! person email-msg)
+        (tel/log! {:level :info
+                   :data  {:person (:name person) :event (:event-label action) :group reminder-group}}
+                  "Reminder email sent")))
+    (cond-> state
+      send-push? (try-send-push env person-id
+                                {:title "Security Reminder"
+                                 :body  (str "You're assigned to " (:event-label action) " on " (proj/display-date (:event-date action)))
+                                 :icon  "/icons/icon-192.png"
+                                 :url   link}))))
 
 (defn- send-correction-for-event
   "Send a correction email + push notification (assigned/rescinded). Returns updated state."
@@ -199,20 +204,24 @@
         link            (str base-url "/" token "/schedule")
         correction-type (:correction-type action)
         people-list     (get-in state [:schedule-db :people])
-        email-msg       (reminders/format-correction-email
-                         correction-type person (:event-label action) (:event-date action)
-                         link
-                         (:schedule-plan state) people-list)]
-    (send-email! person email-msg)
-    (tel/log! {:level :info
-               :data  {:person (:name person) :action correction-type :event (:event-label action)}}
-              "Correction email sent")
-    (try-send-push state env person-id
-                   {:title "Schedule Update"
-                    :body  (str (if (= correction-type :assigned) "You've been assigned to " "No longer assigned to ")
-                                (:event-label action) " on " (:event-date action))
-                    :icon  "/icons/icon-192.png"
-                    :url   link})))
+        send-email?     (get person :notifications/send-via-email? true)
+        send-push?      (get person :notifications/send-via-push? true)]
+    (when send-email?
+      (let [email-msg (reminders/format-correction-email
+                       correction-type person (:event-label action) (:event-date action)
+                       link
+                       (:schedule-plan state) people-list)]
+        (send-email! person email-msg)
+        (tel/log! {:level :info
+                   :data  {:person (:name person) :action correction-type :event (:event-label action)}}
+                  "Correction email sent")))
+    (cond-> state
+      send-push? (try-send-push env person-id
+                                {:title "Schedule Update"
+                                 :body  (str (if (= correction-type :assigned) "You've been assigned to " "No longer assigned to ")
+                                             (:event-label action) " on " (proj/display-date (:event-date action)))
+                                 :icon  "/icons/icon-192.png"
+                                 :url   link}))))
 
 (defn- send-welcome-for-person
   "Send a welcome email + push notification and record the notification. Returns updated state."
@@ -221,18 +230,21 @@
         person-id   (:id person)
         token       (ops/get-token-for-person state person-id)
         people-list (get-in state [:schedule-db :people])
-        email-msg   (reminders/format-welcome-email
-                     person base-url token
-                     (:schedule-plan state) people-list)]
-    (send-email! person email-msg)
-    (tel/log! {:level :info :data {:person (:name person)}} "Welcome email sent")
-    (-> state
-        (update :schedule-db ops/record-welcome-notification person-id (now-str))
-        (try-send-push env person-id
-                       {:title "Welcome"
-                        :body  "You've been added to the security rotation"
-                        :icon  "/icons/icon-192.png"
-                        :url   (str base-url "/" token "/schedule")}))))
+        send-email? (get person :notifications/send-via-email? true)
+        send-push?  (get person :notifications/send-via-push? true)]
+    (when send-email?
+      (let [email-msg (reminders/format-welcome-email
+                       person base-url token
+                       (:schedule-plan state) people-list)]
+        (send-email! person email-msg)
+        (tel/log! {:level :info :data {:person (:name person)}} "Welcome email sent")))
+    (cond-> state
+      true       (update :schedule-db ops/record-welcome-notification person-id (now-str))
+      send-push? (try-send-push env person-id
+                                {:title "Welcome"
+                                 :body  "You've been added to the security rotation"
+                                 :icon  "/icons/icon-192.png"
+                                 :url   (str base-url "/" token "/schedule")}))))
 
 (>defn resolve-state!
        "Process accumulated actions (email sending) and write final state to disk.

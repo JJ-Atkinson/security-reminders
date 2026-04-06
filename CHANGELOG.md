@@ -4,6 +4,12 @@
 
 ## 2026-04-06
 
+- Add per-person notification preferences (`:notifications/send-via-email?`, `:notifications/send-via-push?`) with defaults to enabled
+- Redesign Settings page: always-visible email checkbox, 3-state push section (not installed / enable button / enabled checkbox)
+- Engine skips email or push sending when the person has opted out
+
+## 2026-04-06
+
 - Replace hand-rolled VAPID/RFC 8291 crypto with `nl.martijndwars/web-push` library; delete `vapid.clj` and `encryption.clj`
 - Remove `clj-http-lite` dependency (webpush-java handles HTTP internally)
 - Add visible success/failure feedback on push notification enable button

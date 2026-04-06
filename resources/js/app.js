@@ -73,19 +73,67 @@ function urlBase64ToUint8Array(base64String) {
   return outputArray;
 }
 
-window.shouldShowPushButton = async function() {
-  if (!('PushManager' in window)) return false;
-  if (!('serviceWorker' in navigator)) return false;
+// Determine which push notification UI state to show on the settings page.
+// Three states: cannot enable (not installed / denied), can enable (show button), enabled (show checkbox).
+window.initPushSection = async function() {
+  var stCannot    = document.getElementById('push-state-cannot');
+  var stCanEnable = document.getElementById('push-state-can-enable');
+  var stEnabled   = document.getElementById('push-state-enabled');
+  if (!stCannot) return; // not on settings page
+
+  var hasPush = ('PushManager' in window) && ('serviceWorker' in navigator);
   var isStandalone = window.matchMedia('(display-mode: standalone)').matches
                      || navigator.standalone === true;
-  if (!isStandalone) return false;
-  if (typeof Notification !== 'undefined' && Notification.permission === 'denied') return false;
+
+  if (!hasPush || !isStandalone) {
+    stCannot.classList.remove('hidden');
+    document.getElementById('push-not-installed').classList.remove('hidden');
+    return;
+  }
+
+  if (typeof Notification !== 'undefined' && Notification.permission === 'denied') {
+    stCannot.classList.remove('hidden');
+    document.getElementById('push-denied').classList.remove('hidden');
+    return;
+  }
+
   try {
     var reg = await navigator.serviceWorker.ready;
     var sub = await reg.pushManager.getSubscription();
-    return sub === null;
+    if (sub !== null) {
+      stEnabled.classList.remove('hidden');
+    } else {
+      stCanEnable.classList.remove('hidden');
+    }
   } catch (e) {
-    return false;
+    stCannot.classList.remove('hidden');
+    document.getElementById('push-not-installed').classList.remove('hidden');
+  }
+};
+
+// Handle the "Enable Push Notifications" button click.
+// On success, transitions from state B (button) to state C (checkbox).
+window.handleEnablePush = async function(btn) {
+  btn.innerText = 'Enabling...';
+  btn.disabled = true;
+
+  var success = await subscribePush(btn.dataset.vapidKey, btn.dataset.subscribeUrl);
+
+  if (success) {
+    // Ensure send-via-push? is true on the server
+    fetch(btn.dataset.toggleUrl, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: 'field=notifications/send-via-push?&value=true'
+    });
+    // Transition B → C
+    document.getElementById('push-state-can-enable').classList.add('hidden');
+    document.getElementById('push-state-enabled').classList.remove('hidden');
+    document.getElementById('push-checkbox').checked = true;
+  } else {
+    btn.innerText = 'Enable Push Notifications';
+    btn.disabled = false;
+    document.getElementById('push-enable-failed').classList.remove('hidden');
   }
 };
 

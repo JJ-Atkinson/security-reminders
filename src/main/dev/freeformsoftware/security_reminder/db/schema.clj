@@ -14,7 +14,9 @@
    [:id :string]
    [:name :string]
    [:email :string]
-   [:admin? :boolean]])
+   [:admin? :boolean]
+   [:notifications/send-via-email? {:optional true} :boolean]
+   [:notifications/send-via-push? {:optional true} :boolean]])
 
 (def EventTemplate
   [:map
