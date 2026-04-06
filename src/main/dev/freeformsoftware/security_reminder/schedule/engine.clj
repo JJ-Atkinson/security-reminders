@@ -7,6 +7,7 @@
    [babashka.fs :as fs]
    [clojure.edn :as edn]
    [clojure.java.io :as io]
+   [clojure.string :as str]
    [com.fulcrologic.guardrails.malli.core :refer [>defn =>]]
    [dev.freeformsoftware.security-reminder.db.schema :as schema]
    [dev.freeformsoftware.security-reminder.schedule.ops :as ops]
@@ -147,7 +148,8 @@
     :text    (:text email-msg)
     :html    (:html email-msg)
     :headers (when-let [mid (:last-email-id person)]
-               {"In-Reply-To" mid "References" mid})}))
+               (let [mid (if (str/starts-with? mid "<") mid (str "<" mid ">"))]
+                 {"In-Reply-To" mid "References" mid}))}))
 
 (defn- send-reminder-for-event
   "Send a reminder email for an event assignment. Returns updated state."
