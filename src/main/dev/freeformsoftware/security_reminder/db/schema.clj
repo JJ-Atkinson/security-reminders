@@ -62,6 +62,15 @@
    [:sent-at :string]
    [:sent-for-reminder-group {:optional true} :int]])
 
+(def PushSubscription
+  [:map
+   [:person-id :string]
+   [:endpoint :string]
+   [:p256dh :string]
+   [:auth :string]
+   [:created-at :string]
+   [:user-agent {:optional true} :string]])
+
 (def ScheduleDb
   [:map
    [:event-templates [:vector EventTemplate]]
@@ -70,6 +79,7 @@
    [:sent-notifications [:vector SentNotification]]
    [:instance-overrides [:vector InstanceOverride]]
    [:assignment-overrides [:vector AssignmentOverride]]
+   [:push-subscriptions {:optional true} [:vector PushSubscription]]
    [:sec-tokens [:map-of :string :string]]
    [:people [:vector Person]]])
 
@@ -115,6 +125,7 @@
       [:map
        [:schedule-db ::schedule-db]
        [:schedule-plan [:vector ::plan-entry]]
+       [:today-str ::date-str]
        [:actions vector?]])
 ;; =============================================================================
 ;; Event-key conversion utilities

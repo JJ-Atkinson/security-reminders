@@ -3,6 +3,7 @@
    [dev.freeformsoftware.security-reminder.ui.pages :as ui.pages]
    [dev.freeformsoftware.security-reminder.ui.html-fragments :as ui.frag]
    [dev.freeformsoftware.security-reminder.schedule.engine :as engine]
+   [dev.freeformsoftware.security-reminder.schedule.ops :as ops]
    [dev.freeformsoftware.security-reminder.schedule.time-layer :as time-layer]
    [dev.freeformsoftware.security-reminder.server.route-utils :as route-utils]
    [cheshire.core :as json]
@@ -95,12 +96,11 @@
       [:div
        [:h2.text-2xl.font-bold "Security Schedule"]
        [:p (str "Viewing as: " (:name person))]]
-      (when (:admin? person)
-        [:a
-         {:href  (str "/" sec-token "/admin/users")
-          :class (into ["text-sm"] ui.frag/button-classes)
-          :title "Admin"}
-         "Admin"])]
+      [:a
+       {:href  (str "/" sec-token "/admin/settings")
+        :class (into ["text-sm"] ui.frag/button-classes)
+        :title "Settings"}
+       "Settings"]]
      [:div#schedule-wrapper.filter-mine
       [:label.flex.items-center.gap-2.mb-3.cursor-pointer
        [:input#my-events-toggle
@@ -150,7 +150,7 @@
       (let [env       (time-layer/scheduler-env (:time-layer conf))
             person    (:person request)
             event-key (parse-event-key params)]
-        (engine/note-absence! env (:id person) event-key)
+        (engine/with-state!-> env (ops/note-absence (:id person) event-key))
         (schedule-partial conf request)))))
 
 (defn- handle-absence-toggle-redirect
@@ -162,7 +162,7 @@
       (let [env       (time-layer/scheduler-env (:time-layer conf))
             person    (:person request)
             event-key (parse-event-key params)]
-        (engine/note-absence! env (:id person) event-key)
+        (engine/with-state!-> env (ops/note-absence (:id person) event-key))
         (resp/redirect (str "/" (:sec-token request) "/schedule"))))))
 
 ;; =============================================================================

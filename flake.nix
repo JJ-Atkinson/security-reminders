@@ -35,6 +35,7 @@
             pkgs.bbin
             pkgs.clj-kondo
             pkgs.clojure-lsp
+            pkgs.cloc
 
             pkgs.nodejs
             pkgs.nodePackages.npm

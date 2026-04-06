@@ -18,7 +18,7 @@
 
 (defn- regen-plan
   "Recompute :schedule-plan from :schedule-db."
-  [state today-str]
+  [state]
   (let [db (:schedule-db state)]
     (assoc state
            :schedule-plan
@@ -27,7 +27,7 @@
             (:event-templates db)
             (:one-off-events db)
             (:absences db)
-            today-str
+            (:today-str state)
             8
             (:instance-overrides db [])
             (:assignment-overrides db [])))))
@@ -38,14 +38,14 @@
 
 (>defn refresh-plan
        "Recompute the plan from current db state."
-       [state today-str]
-       [::schema/state ::schema/date-str => map?]
-       (regen-plan state today-str))
+       [state]
+       [::schema/state => map?]
+       (regen-plan state))
 
 (>defn note-absence
        "Toggle absence for a person on an event. Add if missing, remove if present."
-       [state person-id event-key today-str]
-       [::schema/state :string ::schema/event-key ::schema/date-str => map?]
+       [state person-id event-key]
+       [::schema/state :string ::schema/event-key => map?]
        (let [match-keys (schema/event-key->flat-keys event-key)
              absence    (assoc match-keys :person-id person-id)]
          (-> state
@@ -58,20 +58,20 @@
                          (if existing
                            (update db :absences (fn [abs] (vec (remove #(= % existing) abs))))
                            (update db :absences conj absence)))))
-             (regen-plan today-str))))
+             (regen-plan))))
 
 (>defn add-person
        "Add a new person to the DB. Caller provides the full person map including :id."
-       [state person-map today-str]
-       [::schema/state ::schema/person ::schema/date-str => map?]
+       [state person-map]
+       [::schema/state ::schema/person => map?]
        (-> state
            (update-in [:schedule-db :people] conj person-map)
-           (regen-plan today-str)))
+           (regen-plan)))
 
 (>defn remove-person
        "Remove a person from the DB. Also removes their token, absences, and notifications."
-       [state person-id today-str]
-       [::schema/state :string ::schema/date-str => map?]
+       [state person-id]
+       [::schema/state :string => map?]
        (-> state
            (update :schedule-db
                    (fn [db]
@@ -80,32 +80,32 @@
                          (update :sec-tokens (fn [tokens] (into {} (remove (fn [[_tok pid]] (= pid person-id))) tokens)))
                          (update :absences (fn [abs] (vec (remove #(= (:person-id %) person-id) abs))))
                          (update :sent-notifications (fn [ns] (vec (remove #(= (:person-id %) person-id) ns)))))))
-           (regen-plan today-str)))
+           (regen-plan)))
 
 (>defn add-one-off
        "Add a one-off event. Caller provides the full event map including :id."
-       [state event-map today-str]
-       [::schema/state ::schema/one-off-event ::schema/date-str => map?]
+       [state event-map]
+       [::schema/state ::schema/one-off-event => map?]
        (-> state
            (update-in [:schedule-db :one-off-events] conj event-map)
-           (regen-plan today-str)))
+           (regen-plan)))
 
 (>defn remove-one-off
        "Remove a one-off event by ID. Also removes related absences."
-       [state event-id today-str]
-       [::schema/state :string ::schema/date-str => map?]
+       [state event-id]
+       [::schema/state :string => map?]
        (-> state
            (update :schedule-db
                    (fn [db]
                      (-> db
                          (update :one-off-events (fn [evts] (vec (remove #(= (:id %) event-id) evts))))
                          (update :absences (fn [abs] (vec (remove #(= (:one-off-event-id %) event-id) abs)))))))
-           (regen-plan today-str)))
+           (regen-plan)))
 
 (>defn update-template
        "Modify an event template (e.g. people-required)."
-       [state template-id updates today-str]
-       [::schema/state :string map? ::schema/date-str => map?]
+       [state template-id updates]
+       [::schema/state :string map? => map?]
        (-> state
            (update-in [:schedule-db :event-templates]
                       (fn [templates]
@@ -114,12 +114,12 @@
                                   (merge t updates)
                                   t))
                               templates)))
-           (regen-plan today-str)))
+           (regen-plan)))
 
 (>defn set-instance-override
        "Upsert a per-instance people-required override."
-       [state event-date template-id people-required today-str]
-       [::schema/state ::schema/date-str :string :int ::schema/date-str => map?]
+       [state event-date template-id people-required]
+       [::schema/state ::schema/date-str :string :int => map?]
        (-> state
            (update :schedule-db
                    (fn [db]
@@ -133,24 +133,24 @@
                                     {:event-date        event-date
                                      :event-template-id template-id
                                      :people-required   people-required})))))
-           (regen-plan today-str)))
+           (regen-plan)))
 
 (>defn remove-instance-override
        "Remove a per-instance override."
-       [state event-date template-id today-str]
-       [::schema/state ::schema/date-str :string ::schema/date-str => map?]
+       [state event-date template-id]
+       [::schema/state ::schema/date-str :string => map?]
        (-> state
            (update-in [:schedule-db :instance-overrides]
                       (fn [overrides]
                         (vec (remove #(and (= (:event-date %) event-date)
                                            (= (:event-template-id %) template-id))
                                      (or overrides [])))))
-           (regen-plan today-str)))
+           (regen-plan)))
 
 (>defn set-assignment-override
        "Set a manual assignment override for a specific event instance."
-       [state event-key assigned-ids today-str]
-       [::schema/state ::schema/event-key sequential? ::schema/date-str => map?]
+       [state event-key assigned-ids]
+       [::schema/state ::schema/event-key sequential? => map?]
        (let [match-keys (schema/event-key->flat-keys event-key)]
          (-> state
              (update :schedule-db
@@ -162,12 +162,12 @@
                          (assoc db
                                 :assignment-overrides
                                 (conj without (assoc match-keys :assigned (vec assigned-ids)))))))
-             (regen-plan today-str))))
+             (regen-plan))))
 
 (>defn remove-assignment-override
        "Remove a manual assignment override for a specific event instance."
-       [state event-key today-str]
-       [::schema/state ::schema/event-key ::schema/date-str => map?]
+       [state event-key]
+       [::schema/state ::schema/event-key => map?]
        (let [match-keys (schema/event-key->flat-keys event-key)]
          (-> state
              (update-in [:schedule-db :assignment-overrides]
@@ -175,7 +175,7 @@
                           (vec (remove #(= (select-keys % (keys match-keys))
                                            match-keys)
                                        (or overrides [])))))
-             (regen-plan today-str))))
+             (regen-plan))))
 
 ;; =============================================================================
 ;; Token ops
@@ -248,6 +248,12 @@
         capped        (vec (take-last notification-cap notifications))]
     (assoc db :sent-notifications capped)))
 
+(>defn record-notification-sent
+       "Record a sent notification, capping at 500."
+       [state person-id event-key type now-str]
+       [::schema/state :string ::schema/event-key keyword? ::schema/iso-datetime => map?]
+       (update state :schedule-db record-notification person-id event-key type now-str))
+
 (defn record-welcome-notification
   "Add a welcome notification entry (no event-key) to :sent-notifications."
   [db person-id now-str]
@@ -278,10 +284,10 @@
    in state and produce :send-reminder actions. Each person+event gets at most one
    notification per group. Handles catch-up naturally — anyone in the window without
    a notification for that group gets one."
-       [state today-str now-str]
-       [::schema/state ::schema/date-str ::schema/iso-datetime => map?]
+       [state now-str]
+       [::schema/state ::schema/iso-datetime => map?]
        (let [plan    (:schedule-plan state)
-             today   (LocalDate/parse today-str)
+             today   (LocalDate/parse (:today-str state))
              windows (build-exclusive-windows (:notify-at-days-before state))]
          (reduce
           (fn [state {:keys [group lower lower-inclusive? upper]}]
@@ -328,11 +334,11 @@
 (>defn compute-pending-corrections
        "Diff plan vs sent notifications and produce :send-correction actions.
    Records notification entries."
-       [state today-str now-str]
-       [::schema/state ::schema/date-str ::schema/iso-datetime => map?]
+       [state now-str]
+       [::schema/state ::schema/iso-datetime => map?]
        (let [plan        (:schedule-plan state)
              db          (:schedule-db state)
-             corrections (notifications/compute-corrections plan (:sent-notifications db) today-str)]
+             corrections (notifications/compute-corrections plan (:sent-notifications db) (:today-str state))]
          (reduce
           (fn [state {:keys [person-id event-key action plan-entry]}]
             (-> state
@@ -347,6 +353,26 @@
                          :event-date      (:date event-key)})))
           state
           corrections)))
+
+;; =============================================================================
+;; Push subscription ops
+;; =============================================================================
+
+(defn add-push-subscription
+  "Upsert a push subscription by endpoint. Returns updated state."
+  [state subscription]
+  (update-in state [:schedule-db :push-subscriptions]
+             (fn [subs]
+               (let [without (vec (remove #(= (:endpoint %) (:endpoint subscription))
+                                          (or subs [])))]
+                 (conj without subscription)))))
+
+(defn remove-push-subscription
+  "Remove a push subscription by endpoint. Returns updated state."
+  [state endpoint]
+  (update-in state [:schedule-db :push-subscriptions]
+             (fn [subs]
+               (vec (remove #(= (:endpoint %) endpoint) (or subs []))))))
 
 ;; =============================================================================
 ;; Query helpers

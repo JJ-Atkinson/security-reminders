@@ -82,19 +82,23 @@
   "Sidebar navigation for admin pages."
   [request active-page]
   (let [sec-token (:sec-token request)
-        link      (fn [href label page-key]
-                    [:a
-                     {:href  href
-                      :class (if (= active-page page-key)
-                               ui.frag/selected-link-classes
-                               ui.frag/clickable-link-classes)}
-                     label])]
+        admin?   (:admin? (:person request))
+        link     (fn [href label page-key]
+                   [:a
+                    {:href  href
+                     :class (if (= active-page page-key)
+                              ui.frag/selected-link-classes
+                              ui.frag/clickable-link-classes)}
+                    label])]
     [:div.flex.flex-col
      (link (str "/" sec-token "/schedule") "\u2190 Schedule" nil)
-     (link (str "/" sec-token "/admin/users") "Users" :users)
-     (link (str "/" sec-token "/admin/events") "Events" :events)
-     (link (str "/" sec-token "/admin/messages") "Sent Messages" :messages)
-     (link (str "/" sec-token "/admin/logs") "Logs" :logs)]))
+     (link (str "/" sec-token "/admin/settings") "Settings" :settings)
+     (when admin?
+       (list
+        (link (str "/" sec-token "/admin/users") "Users" :users)
+        (link (str "/" sec-token "/admin/events") "Events" :events)
+        (link (str "/" sec-token "/admin/messages") "Sent Messages" :messages)
+        (link (str "/" sec-token "/admin/logs") "Logs" :logs)))]))
 
 (defn admin-page-shell
   "Wrap admin content in sidebar layout."

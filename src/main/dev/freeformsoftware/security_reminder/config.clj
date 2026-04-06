@@ -79,6 +79,14 @@
         full-config (if-let [gs (garden-storage-path)]
                       (assoc full-config :db-folder (str gs "/" (:db-folder full-config "data")))
                       full-config)
+        ;; Resolve VAPID keys from env vars (prod) if not already in config (dev)
+        full-config (cond-> full-config
+                      (not (:vapid-public-key full-config))
+                      (assoc :vapid-public-key (System/getenv "VAPID_PUBLIC_KEY"))
+                      (not (:vapid-private-key full-config))
+                      (assoc :vapid-private-key (System/getenv "VAPID_PRIVATE_KEY"))
+                      (not (:vapid-subject full-config))
+                      (assoc :vapid-subject (System/getenv "VAPID_SUBJECT")))
         full-config (resolve-nrefs full-config)
         parsed-config (:system full-config)]
     (ig/load-namespaces parsed-config)

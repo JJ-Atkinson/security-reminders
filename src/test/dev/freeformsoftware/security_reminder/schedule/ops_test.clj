@@ -39,6 +39,7 @@
                              8
                              (:instance-overrides db)
                              (:assignment-overrides db))
+     :today-str             today
      :notify-at-days-before notify-at-days-before
      :actions               []}))
 
@@ -55,12 +56,12 @@
           event1     (first (filter #(= target-key (:event-key %)) plan1))
 
           ;; Advance to next day (simulate inc-day!)
-          state-day2 (ops/refresh-plan state-day1 "2026-03-26")
+          state-day2 (-> state-day1 (assoc :today-str "2026-03-26") ops/refresh-plan)
           plan2      (:schedule-plan state-day2)
           event2     (first (filter #(= target-key (:event-key %)) plan2))
 
           ;; And again
-          state-day3 (ops/refresh-plan state-day2 "2026-03-27")
+          state-day3 (-> state-day2 (assoc :today-str "2026-03-27") ops/refresh-plan)
           plan3      (:schedule-plan state-day3)
           event3     (first (filter #(= target-key (:event-key %)) plan3))]
       (is (some? event1) "event should exist in day1 window")
@@ -97,7 +98,7 @@
                                                 :type              :reminder
                                                 :sent-at           "2026-03-25T08:00:00"})))
           ;; Note absence — person is no longer assigned
-          state              (ops/note-absence state person-id event-key "2026-03-25")
+          state              (ops/note-absence state person-id event-key)
 
           ;; Verify person is no longer assigned
           updated-event      (first (filter #(= event-key (:event-key %)) (:schedule-plan state)))
@@ -105,7 +106,7 @@
                 "person should no longer be assigned after absence")
 
           ;; Compute corrections
-          state              (ops/compute-pending-corrections state "2026-03-25" "2026-03-25T09:00:00")
+          state              (ops/compute-pending-corrections state "2026-03-25T09:00:00")
           correction-actions (filter #(= :send-correction (:type %)) (:actions state))]
       (is (pos? (count correction-actions)) "should have correction actions")
       (is (some #(and (= person-id (:person-id %))
@@ -116,10 +117,10 @@
 (deftest test-scenario-reminder-dedup
   (testing "computing reminders twice only produces actions once"
     (let [state    (make-test-state :today "2026-03-25")
-          state1   (ops/compute-pending-reminders state "2026-03-25" "2026-03-25T08:00:00")
+          state1   (ops/compute-pending-reminders state "2026-03-25T08:00:00")
           actions1 (count (:actions state1))
           ;; Second pass (same state with sent-notifications recorded)
-          state2   (ops/compute-pending-reminders state1 "2026-03-25" "2026-03-25T09:00:00")
+          state2   (ops/compute-pending-reminders state1 "2026-03-25T09:00:00")
           actions2 (count (:actions state2))]
       (is (pos? actions1) "first pass should produce actions")
       (is (= actions1 actions2) "second pass should not produce additional actions"))))
@@ -128,7 +129,7 @@
   (testing "event at day 1 only gets group-1, not group-8"
     (let [;; today = 2026-03-28, so Sun events on 2026-03-29 are 1 day out
           state         (make-test-state :today "2026-03-28")
-          state'        (ops/compute-pending-reminders state "2026-03-28" "2026-03-28T08:00:00")
+          state'        (ops/compute-pending-reminders state "2026-03-28T08:00:00")
           day-1-actions (filter #(= "2026-03-29" (:event-date %)) (:actions state'))]
       (is (pos? (count day-1-actions)) "should have actions for day+1 events")
       (doseq [a day-1-actions]
@@ -140,13 +141,13 @@
           target-date     "2026-03-29"
           state           (make-test-state :today "2026-03-21")
           ;; At day 8: should get group-8 reminders
-          state1          (ops/compute-pending-reminders state "2026-03-21" "2026-03-21T08:00:00")
+          state1          (ops/compute-pending-reminders state "2026-03-21T08:00:00")
           group-8-actions (filter #(and (= target-date (:event-date %))
                                         (= 8 (:reminder-group %)))
                                   (:actions state1))
           ;; Advance to day 1 (2026-03-28): same event is now 1 day out
-          state2          (ops/refresh-plan state1 "2026-03-28")
-          state3          (ops/compute-pending-reminders state2 "2026-03-28" "2026-03-28T08:00:00")
+          state2          (-> state1 (assoc :today-str "2026-03-28") ops/refresh-plan)
+          state3          (ops/compute-pending-reminders state2 "2026-03-28T08:00:00")
           group-1-actions (filter #(and (= target-date (:event-date %))
                                         (= 1 (:reminder-group %)))
                                   (:actions state3))]
@@ -157,7 +158,7 @@
   (testing "person assigned at day 4 gets group-8 only (falls in (1,8] window)"
     (let [;; today = 2026-03-25, Sun events on 2026-03-29 are 4 days out
           state          (make-test-state :today "2026-03-25")
-          state'         (ops/compute-pending-reminders state "2026-03-25" "2026-03-25T08:00:00")
+          state'         (ops/compute-pending-reminders state "2026-03-25T08:00:00")
           target-actions (filter #(= "2026-03-29" (:event-date %)) (:actions state'))]
       (is (pos? (count target-actions)) "should have actions for day+4 events")
       (doseq [a target-actions]
@@ -167,7 +168,7 @@
   (testing "person assigned at day 1 gets group-1 only (no double-ping)"
     (let [;; today = 2026-03-28, Sun events on 2026-03-29 are 1 day out
           state          (make-test-state :today "2026-03-28")
-          state'         (ops/compute-pending-reminders state "2026-03-28" "2026-03-28T08:00:00")
+          state'         (ops/compute-pending-reminders state "2026-03-28T08:00:00")
           target-actions (filter #(= "2026-03-29" (:event-date %)) (:actions state'))]
       (is (pos? (count target-actions)) "should have actions for day+1 events")
       (doseq [a target-actions]
@@ -183,7 +184,7 @@
           ;; Events happening today (day 0)
           today-events (filterv #(= "2026-03-25" (:date %)) (:schedule-plan state))]
       (when (seq today-events)
-        (let [state'        (ops/compute-pending-reminders state "2026-03-25" "2026-03-25T08:00:00")
+        (let [state'        (ops/compute-pending-reminders state "2026-03-25T08:00:00")
               today-actions (filter #(= "2026-03-25" (:event-date %)) (:actions state'))]
           (doseq [a today-actions]
             (is (= 1 (:reminder-group a)) "day-0 event should be group 1")))))))
@@ -213,7 +214,7 @@
 
           ;; Override to assign completely different people
           new-people         (vec (remove (set original-assigned) (map :id test-people)))
-          state              (ops/set-assignment-override state event-key (take 2 new-people) "2026-03-25")
+          state              (ops/set-assignment-override state event-key (take 2 new-people))
 
           ;; Verify override took effect
           updated-event      (first (filter #(= event-key (:event-key %)) (:schedule-plan state)))
@@ -221,7 +222,7 @@
                 "displaced person should not be in new assignment")
 
           ;; Compute corrections
-          state              (ops/compute-pending-corrections state "2026-03-25" "2026-03-25T09:00:00")
+          state              (ops/compute-pending-corrections state "2026-03-25T09:00:00")
           correction-actions (filter #(= :send-correction (:type %)) (:actions state))]
       (is (some #(and (= displaced-person (:person-id %))
                       (= :rescinded (:correction-type %)))
@@ -237,10 +238,10 @@
           event-key     (:event-key target)
 
           ;; Override to assign p4 and p5
-          state         (ops/set-assignment-override state event-key ["p4" "p5"] "2026-03-25")
+          state         (ops/set-assignment-override state event-key ["p4" "p5"])
 
           ;; Now mark p4 absent
-          state         (ops/note-absence state "p4" event-key "2026-03-25")
+          state         (ops/note-absence state "p4" event-key)
 
           ;; Verify p4 is not assigned (substituted)
           updated-event (first (filter #(= event-key (:event-key %)) (:schedule-plan state)))]

@@ -4,6 +4,16 @@
 
 ## 2026-04-06
 
+- Add Web Push notification support (VAPID, RFC 8291 encryption, clj-http-lite delivery)
+- Add Settings page accessible to all users; admin-only pages (Users, Events, Messages, Logs) remain restricted
+- Replace Admin button on schedule page with Settings button for all users
+- Add push subscription API (subscribe/unsubscribe endpoints)
+- Add service worker push and notification click handlers
+- Add `bin/generate-vapid-keys` script for VAPID key pair generation
+- Wire VAPID keys through config (secrets.edn for dev, Garden env vars for prod)
+
+## 2026-04-06
+
 - Add PWA support: manifest, service worker, app icons, and meta tags for mobile "Add to Home Screen"
 - Refactor routes: move handler logic into page namespaces (ui.pages.schedule, ui.pages.admin.{users,events,info}), each exporting a `routes` function; routes.clj now just composes route maps with middleware
 - Move input validation helpers (valid-date?, valid-email?, etc.) to route-utils

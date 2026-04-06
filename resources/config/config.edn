@@ -23,7 +23,10 @@
   {:db-folder #n/ref :db-folder
    :people #n/ref :people
    :base-url #n/ref :base-url
-   :notify-at-days-before [8 1]}
+   :notify-at-days-before [8 1]
+   :vapid-public-key #n/ref :vapid-public-key
+   :vapid-private-key #n/ref :vapid-private-key
+   :vapid-subject #n/ref :vapid-subject}
 
   :dev.freeformsoftware.security-reminder.schedule.time-layer/time-layer
   {:engine #ig/ref :dev.freeformsoftware.security-reminder.schedule.engine/engine
@@ -34,5 +37,6 @@
    :env #n/ref :env
    :app-title #n/ref :app-title
    :base-url #n/ref :base-url
+   :vapid-public-key #n/ref :vapid-public-key
    :time-layer #ig/ref :dev.freeformsoftware.security-reminder.schedule.time-layer/time-layer
    :logging #ig/ref :dev.freeformsoftware.security-reminder.logging-conf/logging-conf}}}

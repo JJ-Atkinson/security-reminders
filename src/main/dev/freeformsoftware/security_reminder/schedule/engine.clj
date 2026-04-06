@@ -10,6 +10,7 @@
    [com.fulcrologic.guardrails.malli.core :refer [>defn =>]]
    [dev.freeformsoftware.security-reminder.db.schema :as schema]
    [dev.freeformsoftware.security-reminder.patches.huff-malli] ;; patch huff 0.1.x for malli 0.19.x compat
+   [dev.freeformsoftware.security-reminder.push.send :as push.send]
    [dev.freeformsoftware.security-reminder.schedule.ops :as ops]
    [dev.freeformsoftware.security-reminder.schedule.reminders :as reminders]
    [integrant.core :as ig]
@@ -88,6 +89,8 @@
                (assoc :sent-notifications [])
                (not (contains? db :assignment-overrides))
                (assoc :assignment-overrides [])
+               (not (contains? db :push-subscriptions))
+               (assoc :push-subscriptions [])
                (contains? db :sent-reminders)
                (dissoc :sent-reminders))
           db (migrate-time-labels db)]
@@ -131,11 +134,12 @@
 
 (>defn fetch-state
        "Read db + plan from disk → state map. Includes config needed by pure ops."
-       [{:keys [db-folder notify-at-days-before]}]
+       [{:keys [db-folder notify-at-days-before today-str]}]
        [[:map [:db-folder :string]] => map?]
        {:schedule-db           (or (read-edn (db-path db-folder)) {})
         :schedule-plan         (or (read-edn (plan-path db-folder)) [])
         :notify-at-days-before (or notify-at-days-before [1])
+        :today-str             today-str
         :actions               []})
 
 (defn- send-email!
@@ -148,10 +152,26 @@
     :text    (:text email-msg)
     :html    (:html email-msg)}))
 
+(defn- try-send-push
+  "Attempt to send a push notification to a person. Returns updated state.
+   Swallows errors so push failures don't block email delivery."
+  [state env person-id payload-map]
+  (try
+    (let [push-conf (select-keys env [:vapid-public-key :vapid-private-key :vapid-subject])]
+      (if (and (:vapid-public-key push-conf) (:vapid-private-key push-conf)
+               (seq (:vapid-public-key push-conf)) (seq (:vapid-private-key push-conf)))
+        (push.send/send-push-to-person! state push-conf person-id payload-map)
+        state))
+    (catch Exception e
+      (tel/log! {:level :warn :data {:person-id person-id :error (ex-message e)}}
+                "Push notification failed")
+      state)))
+
 (defn- send-reminder-for-event
-  "Send a reminder email for an event assignment. Returns updated state."
-  [state base-url person action]
-  (let [person-id      (:id person)
+  "Send a reminder email + push notification for an event assignment. Returns updated state."
+  [state env person action]
+  (let [base-url       (:base-url env)
+        person-id      (:id person)
         token          (ops/get-token-for-person state person-id)
         link           (str base-url "/" token "/schedule")
         reminder-group (:reminder-group action)
@@ -164,12 +184,17 @@
     (tel/log! {:level :info
                :data  {:person (:name person) :event (:event-label action) :group reminder-group}}
               "Reminder email sent")
-    state))
+    (try-send-push state env person-id
+                   {:title "Security Reminder"
+                    :body  (str "You're assigned to " (:event-label action) " on " (:event-date action))
+                    :icon  "/icons/icon-192.png"
+                    :url   link})))
 
 (defn- send-correction-for-event
-  "Send a correction email (assigned/rescinded). Returns updated state."
-  [state base-url person action]
-  (let [person-id       (:id person)
+  "Send a correction email + push notification (assigned/rescinded). Returns updated state."
+  [state env person action]
+  (let [base-url        (:base-url env)
+        person-id       (:id person)
         token           (ops/get-token-for-person state person-id)
         link            (str base-url "/" token "/schedule")
         correction-type (:correction-type action)
@@ -182,12 +207,18 @@
     (tel/log! {:level :info
                :data  {:person (:name person) :action correction-type :event (:event-label action)}}
               "Correction email sent")
-    state))
+    (try-send-push state env person-id
+                   {:title "Schedule Update"
+                    :body  (str (if (= correction-type :assigned) "You've been assigned to " "No longer assigned to ")
+                                (:event-label action) " on " (:event-date action))
+                    :icon  "/icons/icon-192.png"
+                    :url   link})))
 
 (defn- send-welcome-for-person
-  "Send a welcome email and record the notification. Returns updated state."
-  [state base-url person]
-  (let [person-id   (:id person)
+  "Send a welcome email + push notification and record the notification. Returns updated state."
+  [state env person]
+  (let [base-url    (:base-url env)
+        person-id   (:id person)
         token       (ops/get-token-for-person state person-id)
         people-list (get-in state [:schedule-db :people])
         email-msg   (reminders/format-welcome-email
@@ -195,12 +226,18 @@
                      (:schedule-plan state) people-list)]
     (send-email! person email-msg)
     (tel/log! {:level :info :data {:person (:name person)}} "Welcome email sent")
-    (update state :schedule-db ops/record-welcome-notification person-id (now-str))))
+    (-> state
+        (update :schedule-db ops/record-welcome-notification person-id (now-str))
+        (try-send-push env person-id
+                       {:title "Welcome"
+                        :body  "You've been added to the security rotation"
+                        :icon  "/icons/icon-192.png"
+                        :url   (str base-url "/" token "/schedule")}))))
 
 (>defn resolve-state!
        "Process accumulated actions (email sending) and write final state to disk.
    Returns nil."
-       [{:keys [db-folder base-url on-assignment-change] :as _env} state]
+       [{:keys [db-folder on-assignment-change] :as env} state]
        [map? map? => any?]
        (let [actions      (:actions state)
              people-by-id (into {} (map (juxt :id identity)) (get-in state [:schedule-db :people]))
@@ -215,19 +252,19 @@
                       (if-not person
                         (do (tel/log! {:level :warn :data {:person-id person-id}} "Skipping reminder: person not found")
                             state)
-                        (send-reminder-for-event state base-url person action))
+                        (send-reminder-for-event state env person action))
 
                       :send-correction
                       (if-not person
                         (do (tel/log! {:level :warn :data {:person-id person-id}} "Skipping correction: person not found")
                             state)
-                        (send-correction-for-event state base-url person action))
+                        (send-correction-for-event state env person action))
 
                       :send-welcome
                       (if-not person
                         (do (tel/log! {:level :warn :data {:person-id person-id}} "Skipping welcome: person not found")
                             state)
-                        (send-welcome-for-person state base-url person))
+                        (send-welcome-for-person state env person))
 
                  ;; Unknown action type — skip
                       (do (tel/log! {:level :warn :data {:action action}} "Unknown action type")
@@ -317,156 +354,36 @@
                                (= (:one-off-event-id r) (:one-off-id event-key))))))
                (:sent-notifications db))))
 
-;; =============================================================================
-;; Mutation convenience functions (use with-state!-> internally)
-;; These maintain backward compatibility for callers.
-;; =============================================================================
-
-(>defn note-absence!
-       "Toggle absence for a person on an event."
-       [env person-id event-key]
-       [map? :string ::schema/event-key => any?]
-       (with-state!-> env
-         (ops/note-absence person-id event-key (:today-str env))))
-
-(>defn add-person!
-       "Add a new person to the DB. Generates a token for them."
-       [env {:keys [name email admin?]}]
-       [map? [:map [:name :string] [:email ::schema/email] [:admin? :boolean]] => :string]
-       (let [id       (str "p-" (System/currentTimeMillis))
-             existing (set (keys (:sec-tokens (read-edn (db-path (:db-folder env))))))
-             token    (generate-token existing)]
-         (with-state!-> env
-           (ops/add-person {:id id :name name :email email :admin? (boolean admin?)} (:today-str env))
-           (ops/rotate-token id token))
-         id))
-
-(>defn remove-person!
-       "Remove a person from the DB."
-       [env person-id]
-       [map? :string => any?]
-       (with-state!-> env
-         (ops/remove-person person-id (:today-str env))))
-
-(>defn add-one-off!
-       "Add a one-off event."
-       [env {:keys [label date time-label people-required]}]
-       [map? [:map [:label :string] [:date ::schema/date-str] [:time-label ::schema/time-label]] => any?]
-       (let [id (str "oo-" (System/currentTimeMillis))]
-         (with-state!-> env
-           (ops/add-one-off {:id              id
-                             :label           label
-                             :date            date
-                             :time-label      time-label
-                             :people-required (or people-required 2)}
-                            (:today-str env)))))
-
-(>defn remove-one-off!
-       "Remove a one-off event by ID."
-       [env event-id]
-       [map? :string => any?]
-       (with-state!-> env
-         (ops/remove-one-off event-id (:today-str env))))
-
-(>defn update-template!
-       "Modify an event template."
-       [env template-id updates]
-       [map? :string map? => any?]
-       (with-state!-> env
-         (ops/update-template template-id updates (:today-str env))))
-
-(>defn set-instance-override!
-       "Upsert a per-instance people-required override."
-       [env event-date template-id people-required]
-       [map? ::schema/date-str :string :int => any?]
-       (with-state!-> env
-         (ops/set-instance-override event-date template-id people-required (:today-str env))))
-
-(>defn remove-instance-override!
-       "Remove a per-instance override."
-       [env event-date template-id]
-       [map? ::schema/date-str :string => any?]
-       (with-state!-> env
-         (ops/remove-instance-override event-date template-id (:today-str env))))
-
-(>defn set-assignment-override!
-       "Set a manual assignment override for a specific event instance."
-       [env event-key assigned-ids]
-       [map? ::schema/event-key sequential? => any?]
-       (with-state!-> env
-         (ops/set-assignment-override event-key assigned-ids (:today-str env))))
-
-(>defn remove-assignment-override!
-       "Remove a manual assignment override."
-       [env event-key]
-       [map? ::schema/event-key => any?]
-       (with-state!-> env
-         (ops/remove-assignment-override event-key (:today-str env))))
-
-(>defn refresh-plan!
-       "Called by daily cron to roll the 8-week window forward."
-       [env]
-       [map? => any?]
-       (with-state!-> env
-         (ops/refresh-plan (:today-str env))))
-
-(>defn record-notification-sent!
-       "Record a sent notification. Used by legacy callers."
-       [env person-id event-key type]
-       [map? :string ::schema/event-key keyword? => any?]
-       (with-state!-> env
-         (update
-          :schedule-db
-          (fn [db]
-            (let [entry         (cond-> {:person-id  person-id
-                                         :event-date (:date event-key)
-                                         :type       type
-                                         :sent-at    (now-str)}
-                                  (:template-id event-key) (assoc :event-template-id (:template-id event-key))
-                                  (:one-off-id event-key)  (assoc :one-off-event-id (:one-off-id event-key)))
-                  notifications (conj (or (:sent-notifications db) []) entry)
-                  capped        (vec (take-last 500 notifications))]
-              (assoc db :sent-notifications capped))))))
-
-(>defn rotate-token!
-       "Generate a new sec-token for a person. Returns the new token."
-       [env person-id]
-       [map? :string => :string]
-       (let [existing  (set (keys (:sec-tokens (read-edn (db-path (:db-folder env))))))
-             new-token (generate-token existing)]
-         (with-state!-> env
-           (ops/rotate-token person-id new-token))
-         new-token))
-
-(>defn ensure-tokens!
-       "Ensure every person has a sec-token."
-       [{:keys [db-folder] :as env}]
-       [[:map [:db-folder :string]] => any?]
-       (let [db                  (read-edn (db-path db-folder))
-             existing-person-ids (set (vals (:sec-tokens db)))
-             missing             (remove #(existing-person-ids (:id %)) (:people db))
-             existing            (set (keys (:sec-tokens db)))
-             token-map           (into {} (map (fn [p] [(:id p) (generate-token existing)])) missing)]
-         (when (seq token-map)
-           (with-state!-> env
-             (ops/ensure-tokens token-map)))))
+(>defn get-push-subscriptions-for-person
+       "Returns push subscriptions for a person-id."
+       [{:keys [db-folder]} person-id]
+       [[:map [:db-folder :string]] :string => any?]
+       (let [db (read-edn (db-path db-folder))]
+         (vec (filter #(= (:person-id %) person-id)
+                      (:push-subscriptions db)))))
 
 ;; =============================================================================
 ;; Integrant lifecycle
 ;; =============================================================================
 
 (defmethod ig/init-key ::engine
-  [_ {:keys [db-folder people base-url notify-at-days-before]}]
+  [_ {:keys [db-folder people base-url notify-at-days-before
+             vapid-public-key vapid-private-key vapid-subject]}]
   (tel/log! {:level :info :data {:db-folder db-folder}} "Initializing schedule engine")
   (let [engine {:db-folder             db-folder
                 :lock                  (Object.)
                 :base-url              base-url
                 :notify-at-days-before (or notify-at-days-before [1])
-                :today-str             (str (LocalDate/now))}]
+                :today-str             (str (LocalDate/now))
+                :vapid-public-key      vapid-public-key
+                :vapid-private-key     vapid-private-key
+                :vapid-subject         (or vapid-subject "mailto:noreply@example.com")}]
     (ensure-db! db-folder people)
     (try
-      (ensure-tokens! engine)
-      (refresh-plan! engine)
+      (let [token-map (into {} (map (fn [p] [(:id p) (generate-token)])) people)]
+        (with-state!-> engine
+          (ops/ensure-tokens token-map)
+          (ops/refresh-plan)))
       (assoc engine :healthy? true)
       (catch Exception e
         (tel/log! {:level :error :data {:error (ex-message e)}} "Engine init failed — unhealthy")
@@ -487,8 +404,8 @@
                   :today-str "2026-03-25"}))
   (view-plan e)
   (list-people e)
-  (note-absence! e "p1" {:date "2026-03-25" :template-id "et-1"})
+  (with-state!-> e (ops/note-absence "p1" {:date "2026-03-25" :template-id "et-1"}))
   (view-plan e)
-  (set-assignment-override! e {:date "2026-04-01" :template-id "et-1"} ["p1" "p5"])
+  (with-state!-> e (ops/set-assignment-override {:date "2026-04-01" :template-id "et-1"} ["p1" "p5"]))
   (view-plan e)
   (ig/halt-key! ::engine e))

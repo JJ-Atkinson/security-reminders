@@ -4,6 +4,7 @@
    [dev.freeformsoftware.security-reminder.ui.pages :as ui.pages]
    [dev.freeformsoftware.security-reminder.ui.html-fragments :as ui.frag]
    [dev.freeformsoftware.security-reminder.schedule.engine :as engine]
+   [dev.freeformsoftware.security-reminder.schedule.ops :as ops]
    [dev.freeformsoftware.security-reminder.schedule.projection :as proj]
    [dev.freeformsoftware.security-reminder.schedule.time-layer :as time-layer]
    [dev.freeformsoftware.security-reminder.server.route-utils :as route-utils]
@@ -321,12 +322,14 @@
       (not (route-utils/valid-people-required? pr))
       (route-utils/bad-request "People required must be between 1 and 50")
       :else
-      (let [env (time-layer/scheduler-env time-layer)]
-        (engine/add-one-off! env
-                             {:label           (str/trim label)
-                              :date            date
-                              :time-label      tl-kw
-                              :people-required pr})
+      (let [env (time-layer/scheduler-env time-layer)
+            id  (str "oo-" (System/currentTimeMillis))]
+        (engine/with-state!-> env
+          (ops/add-one-off {:id              id
+                            :label           (str/trim label)
+                            :date            date
+                            :time-label      tl-kw
+                            :people-required (or pr 2)}))
         (resp/redirect (str "/" (:sec-token request) "/admin/events"))))))
 
 (defn- handle-delete-event
@@ -335,7 +338,7 @@
     (if (str/blank? event-id)
       (route-utils/bad-request "Event ID is required")
       (let [env (time-layer/scheduler-env time-layer)]
-        (engine/remove-one-off! env event-id)
+        (engine/with-state!-> env (ops/remove-one-off event-id))
         (resp/redirect (str "/" (:sec-token request) "/admin/events"))))))
 
 (defn- handle-update-template
@@ -350,7 +353,7 @@
       (route-utils/bad-request "People required must be between 1 and 50")
       :else
       (let [env (time-layer/scheduler-env time-layer)]
-        (engine/update-template! env template-id {:people-required pr})
+        (engine/with-state!-> env (ops/update-template template-id {:people-required pr}))
         (resp/redirect (str "/" (:sec-token request) "/admin/events"))))))
 
 (defn- handle-set-override
@@ -368,7 +371,7 @@
       (route-utils/bad-request "People required must be between 1 and 50")
       :else
       (let [env (time-layer/scheduler-env time-layer)]
-        (engine/set-instance-override! env event-date template-id pr)
+        (engine/with-state!-> env (ops/set-instance-override event-date template-id pr))
         (resp/redirect (str "/" (:sec-token request) "/admin/events"))))))
 
 (defn- handle-delete-override
@@ -383,7 +386,7 @@
       (route-utils/bad-request "Template ID is required")
       :else
       (let [env (time-layer/scheduler-env time-layer)]
-        (engine/remove-instance-override! env event-date template-id)
+        (engine/with-state!-> env (ops/remove-instance-override event-date template-id))
         (resp/redirect (str "/" (:sec-token request) "/admin/events"))))))
 
 (defn- handle-set-assignments
@@ -415,7 +418,7 @@
       (render-error "Each person can only be assigned once.")
       :else
       (let [env (time-layer/scheduler-env (:time-layer conf))]
-        (engine/set-assignment-override! env event-key assigned)
+        (engine/with-state!-> env (ops/set-assignment-override event-key assigned))
         (resp/redirect (str "/" (:sec-token request) "/admin/events"))))))
 
 (defn- handle-delete-assignments
@@ -432,7 +435,7 @@
       (route-utils/bad-request "Template ID or One-Off ID is required")
       :else
       (let [env (time-layer/scheduler-env time-layer)]
-        (engine/remove-assignment-override! env event-key)
+        (engine/with-state!-> env (ops/remove-assignment-override event-key))
         (resp/redirect (str "/" (:sec-token request) "/admin/events"))))))
 
 ;; =============================================================================

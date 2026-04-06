@@ -101,11 +101,17 @@
 
 (comment
   ;; === First deploy bootstrap ===. After starting the system, add real people:
-  (require '[dev.freeformsoftware.security-reminder.schedule.engine :as engine])
+  (require '[dev.freeformsoftware.security-reminder.schedule.engine :as engine]
+           '[dev.freeformsoftware.security-reminder.schedule.ops :as ops])
   (engine/list-people (engine))
-  (engine/add-person! (engine) {:name "Alice" :email "alice@example.com" :admin? false})
-  (engine/add-person! (engine) {:name "Jarrett" :email "jarrett@example.com" :admin? true})
-  ;; Get their access URLs: Each add-person! returns the person ID. The token is in the DB.
+  (let [id (str "p-" (System/currentTimeMillis)) token (engine/generate-token)]
+    (engine/with-state!-> (engine)
+      (ops/add-person {:id id :name "Alice" :email "alice@example.com" :admin? false})
+      (ops/rotate-token id token)))
+  (let [id (str "p-" (System/currentTimeMillis)) token (engine/generate-token)]
+    (engine/with-state!-> (engine)
+      (ops/add-person {:id id :name "Jarrett" :email "jarrett@example.com" :admin? true})
+      (ops/rotate-token id token)))
   ;; Look up a token: (engine/get-token-for-person (engine) "p-123456")
   ;; Access URL: http://localhost:3000/{token}/schedule
   )

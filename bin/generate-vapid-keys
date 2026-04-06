@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Generate VAPID key pair for Web Push notifications.
+# Outputs base64url-encoded keys ready for config.edn / secrets.edn.
+set -euo pipefail
+
+npx web-push generate-vapid-keys --json | node -e "
+const keys = JSON.parse(require('fs').readFileSync('/dev/stdin', 'utf8'));
+console.log('');
+console.log('VAPID Keys Generated');
+console.log('====================');
+console.log('');
+console.log('Public key (for config.edn and browser):');
+console.log('  :vapid-public-key \"' + keys.publicKey + '\"');
+console.log('');
+console.log('Private key (for secrets.edn - keep secret!):');
+console.log('  :vapid-private-key \"' + keys.privateKey + '\"');
+console.log('');
+console.log('Add these to your config files, then restart the server.');
+"

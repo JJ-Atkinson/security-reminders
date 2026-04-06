@@ -57,3 +57,51 @@ console.log('positionTooltip function registered');
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js');
 }
+
+// =============================================================================
+// Push notification helpers (called from hyperscript on the settings page)
+// =============================================================================
+
+function urlBase64ToUint8Array(base64String) {
+  var padding = '='.repeat((4 - base64String.length % 4) % 4);
+  var base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  var rawData = atob(base64);
+  var outputArray = new Uint8Array(rawData.length);
+  for (var i = 0; i < rawData.length; i++) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+window.checkPushEligible = function() {
+  if (!('PushManager' in window)) return false;
+  if (!('serviceWorker' in navigator)) return false;
+  var isStandalone = window.matchMedia('(display-mode: standalone)').matches
+                     || navigator.standalone === true;
+  if (!isStandalone) return false;
+  if (typeof Notification !== 'undefined' && Notification.permission === 'denied') return false;
+  return true;
+};
+
+window.checkPushSubscription = async function() {
+  var reg = await navigator.serviceWorker.ready;
+  var sub = await reg.pushManager.getSubscription();
+  return sub !== null;
+};
+
+window.subscribePush = async function(vapidPublicKey, subscribeUrl) {
+  var reg = await navigator.serviceWorker.ready;
+  var existing = await reg.pushManager.getSubscription();
+  if (existing) return;
+
+  var sub = await reg.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
+  });
+
+  await fetch(subscribeUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(sub.toJSON())
+  });
+};

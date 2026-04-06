@@ -10,6 +10,8 @@
    [dev.freeformsoftware.security-reminder.ui.pages.admin.users :as pages.admin.users]
    [dev.freeformsoftware.security-reminder.ui.pages.admin.events :as pages.admin.events]
    [dev.freeformsoftware.security-reminder.ui.pages.admin.info :as pages.admin.info]
+   [dev.freeformsoftware.security-reminder.ui.pages.admin.settings :as pages.admin.settings]
+   [dev.freeformsoftware.security-reminder.push.routes :as push.routes]
    [hiccup2.core :as h]))
 
 (set! *warn-on-reflection* true)
@@ -135,6 +137,8 @@
          (partial auth-middleware/wrap-require-person conf)
          (server.route-utils/merge-routes
           (pages.schedule/routes conf)
+          (pages.admin.settings/routes conf)
+          (push.routes/routes conf)
           (server.route-utils/wrap-routes
            (partial auth-middleware/wrap-admin-auth conf)
            (server.route-utils/merge-routes

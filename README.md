@@ -57,6 +57,22 @@ bin/deploy      # build resources, update changelog, commit, deploy
 
 This runs `bin/build-resources` (minified CSS/JS), promotes the `## Unreleased` section in `CHANGELOG.md` to today's date, commits everything, and runs `garden deploy`.
 
+### Push Notifications (VAPID keys)
+
+Generate VAPID keys for Web Push:
+
+```bash
+bin/generate-vapid-keys
+```
+
+- **Dev:** Copy the output into `resources/config/secrets.edn`
+- **Prod:** Set as Garden secrets:
+  ```bash
+  garden secrets add VAPID_PUBLIC_KEY
+  garden secrets add VAPID_PRIVATE_KEY
+  garden secrets add VAPID_SUBJECT   # e.g. mailto:admin@yourdomain.com
+  ```
+
 ### Secrets
 
 `GARDEN_STORAGE` is auto-provided and holds `schedule-db.edn` and `schedule-plan.edn`.
