@@ -148,7 +148,8 @@
     :text    (:text email-msg)
     :html    (:html email-msg)
     :headers (when-let [mid (:last-email-id person)]
-               (let [mid (if (str/starts-with? mid "<") mid (str "<" mid ">"))]
+               (let [from-domain (second (str/split garden-email/my-email-address #"@"))
+                     mid         (if (str/starts-with? mid "<") mid (str "<" mid "@" from-domain ">"))]
                  {"In-Reply-To" mid "References" mid}))}))
 
 (defn- send-reminder-for-event

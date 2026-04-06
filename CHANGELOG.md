@@ -4,6 +4,10 @@
 
 ## 2026-04-06
 
+- Work on fixing email threading
+
+## 2026-04-06
+
 - Fix email threading: wrap bare message-id from garden API in angle brackets for In-Reply-To/References headers
 
 ## 2026-04-06
