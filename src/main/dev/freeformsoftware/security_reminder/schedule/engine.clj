@@ -450,9 +450,13 @@
                 :notify-at-days-before (or notify-at-days-before [1])
                 :today-str             (str (LocalDate/now))}]
     (ensure-db! db-folder people)
-    (ensure-tokens! engine)
-    (refresh-plan! engine)
-    engine))
+    (try
+      (ensure-tokens! engine)
+      (refresh-plan! engine)
+      (assoc engine :healthy? true)
+      (catch Exception e
+        (tel/log! {:level :error :data {:error (ex-message e)}} "Engine init failed — unhealthy")
+        (assoc engine :healthy? false :init-error (ex-message e))))))
 
 (defmethod ig/halt-key! ::engine
   [_ _engine]

@@ -55,11 +55,14 @@
   [conf]
   {"HEAD /"           (fn [_] {:status 200 :body ""})
    "GET /health"      (fn [_]
-                        (let [lb     (:log-buffer (:logging conf))
-                              status (if (and lb (log-buffer/errors-in-last-24h? lb))
-                                       "yellow"
-                                       "ok")]
-                          {:status  200
+                        (let [lb      (:log-buffer (:logging conf))
+                              engine  (:engine conf)
+                              healthy (:healthy? engine true)
+                              status  (cond
+                                        (not healthy) "red"
+                                        (and lb (log-buffer/errors-in-last-24h? lb)) "yellow"
+                                        :else "ok")]
+                          {:status  (if healthy 200 503)
                            :headers {"Content-Type" "application/json"}
                            :body    (str "{\"status\":\"" status "\"}")}))
    "GET /favicon.ico" (constantly {:status 404 :body nil})})

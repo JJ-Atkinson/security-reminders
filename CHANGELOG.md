@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## Unreleased 
+
+- Allow system to boot when the userdb is broken.
 
 ## 2026-04-06
 
