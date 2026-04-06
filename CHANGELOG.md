@@ -4,6 +4,10 @@
 
 ## 2026-04-06
 
+- Lost the user db :/
+
+## 2026-04-06
+
 - Replace SMS/Twilio with email via garden-email (threaded reply chains, rich HTML schedule cards)
 - Replace phone numbers with email addresses in person data
 - Double security token length (6 → 12 chars), disable token rotation on send
