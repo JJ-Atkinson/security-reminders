@@ -1,8 +1,42 @@
 (ns dev.freeformsoftware.security-reminder.server.route-utils
   (:require
-   [clojure.set :as set]))
+   [clojure.set :as set]
+   [clojure.string :as str])
+  (:import
+   [java.time LocalDate]
+   [java.time.format DateTimeParseException]))
 
 (set! *warn-on-reflection* true)
+
+;; =============================================================================
+;; Input validation helpers
+;; =============================================================================
+
+(defn valid-date?
+  [s]
+  (when (string? s)
+    (try (LocalDate/parse s)
+         true
+         (catch DateTimeParseException _ false))))
+
+(defn valid-email?
+  [s]
+  (and (string? s)
+       (re-matches #".+@.+\..+" s)))
+
+(defn valid-name?
+  [s]
+  (and (string? s) (not (str/blank? s))))
+
+(defn valid-people-required?
+  [n]
+  (and (int? n) (<= 1 n 50)))
+
+(def valid-time-labels #{:morning :afternoon :evening})
+
+(defn bad-request
+  [msg]
+  {:status 400 :headers {"Content-Type" "text/plain"} :body msg})
 
 (defn merge-routes
   [& routes]

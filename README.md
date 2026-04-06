@@ -45,6 +45,7 @@ App runs at `http://localhost:3000/{token}/schedule`.
 | `/dev/login` | Table of all users with direct links to their schedule pages |
 | `/dev/reminder-email` | Preview a sample reminder email using real DB data |
 | `/dev/correction-email` | Preview a sample correction email using real DB data |
+| `/dev/welcome-email` | Preview a sample welcome email using real DB data |
 
 `deps.local.edn` is gitignored and optional for local dependency overrides.
 

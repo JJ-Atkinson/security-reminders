@@ -4,8 +4,9 @@
 (set! *warn-on-reflection* true)
 
 (defn html-body
-  "Wrapper for full HTML page with CSS, JS, and body content"
-  [{:keys [env]} & body]
+  "Wrapper for full HTML page with CSS, JS, and body content.
+   Accepts optional :sec-token in conf for PWA manifest link."
+  [{:keys [env sec-token]} & body]
   (h/html
    (h/raw "<!DOCTYPE html>\n")
    [:html
@@ -13,6 +14,12 @@
      [:meta {:charset "UTF-8"}]
      [:meta {:name "viewport" :content "width=device-width, initial-scale=1.0, viewport-fit=cover"}]
      [:meta {:name "robots" :content "noindex, nofollow"}]
+     [:meta {:name "theme-color" :content "#fff7ed"}]
+     [:meta {:name "mobile-web-app-capable" :content "yes"}]
+     [:meta {:name "apple-mobile-web-app-status-bar-style" :content "default"}]
+     (when sec-token
+       [:link {:rel "manifest" :href (str "/" sec-token "/manifest.json")}])
+     [:link {:rel "apple-touch-icon" :href "/icons/apple-touch-icon.png"}]
      [:link {:rel "stylesheet" :href "/css/output.css"}]
      [:script {:src "/js/bundle.js"}]
      (when (= env :dev) [:script {:src "/js/dev-ws.js" :defer true}])]
@@ -111,7 +118,7 @@
    "hover:bg-teal-200"])
 
 (def small-button-classes
-  ["text-xs" "whitespace-nowrap" "font-bold" "border-2" "py-1" "px-2"])
+  ["text-sm" "whitespace-nowrap" "font-bold" "border-2" "py-1" "px-2"])
 
 (def cancel-button-classes
   ["bg-slate-700"

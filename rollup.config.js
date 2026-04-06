@@ -9,6 +9,11 @@ export default {
     format: 'iife',
     sourcemap: true
   },
+  onwarn(warning, warn) {
+    // htmx uses eval internally — suppress this known warning
+    if (warning.code === 'EVAL' && warning.id?.includes('htmx')) return;
+    warn(warning);
+  },
   plugins: [
     resolve(),
     commonjs(),

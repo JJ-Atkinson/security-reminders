@@ -7,9 +7,9 @@
    [babashka.fs :as fs]
    [clojure.edn :as edn]
    [clojure.java.io :as io]
-   [clojure.string :as str]
    [com.fulcrologic.guardrails.malli.core :refer [>defn =>]]
    [dev.freeformsoftware.security-reminder.db.schema :as schema]
+   [dev.freeformsoftware.security-reminder.patches.huff-malli] ;; patch huff 0.1.x for malli 0.19.x compat
    [dev.freeformsoftware.security-reminder.schedule.ops :as ops]
    [dev.freeformsoftware.security-reminder.schedule.reminders :as reminders]
    [integrant.core :as ig]
@@ -146,11 +146,7 @@
     :from    {:email garden-email/my-email-address :name "Security Reminder"}
     :subject (:subject email-msg)
     :text    (:text email-msg)
-    :html    (:html email-msg)
-    :headers (when-let [mid (:last-email-id person)]
-               (let [from-domain (second (str/split garden-email/my-email-address #"@"))
-                     mid         (if (str/starts-with? mid "<") mid (str "<" mid "@" from-domain ">"))]
-                 {"In-Reply-To" mid "References" mid}))}))
+    :html    (:html email-msg)}))
 
 (defn- send-reminder-for-event
   "Send a reminder email for an event assignment. Returns updated state."
@@ -163,14 +159,12 @@
         email-msg      (reminders/format-reminder-email
                         person (:event-label action) (:event-date action)
                         link reminder-group
-                        (:schedule-plan state) people-list)
-        result         (send-email! person email-msg)]
+                        (:schedule-plan state) people-list)]
+    (send-email! person email-msg)
     (tel/log! {:level :info
                :data  {:person (:name person) :event (:event-label action) :group reminder-group}}
               "Reminder email sent")
-    (if-let [msg-id (:message-id result)]
-      (ops/update-person-field state person-id :last-email-id msg-id)
-      state)))
+    state))
 
 (defn- send-correction-for-event
   "Send a correction email (assigned/rescinded). Returns updated state."
@@ -183,14 +177,25 @@
         email-msg       (reminders/format-correction-email
                          correction-type person (:event-label action) (:event-date action)
                          link
-                         (:schedule-plan state) people-list)
-        result          (send-email! person email-msg)]
+                         (:schedule-plan state) people-list)]
+    (send-email! person email-msg)
     (tel/log! {:level :info
                :data  {:person (:name person) :action correction-type :event (:event-label action)}}
               "Correction email sent")
-    (if-let [msg-id (:message-id result)]
-      (ops/update-person-field state person-id :last-email-id msg-id)
-      state)))
+    state))
+
+(defn- send-welcome-for-person
+  "Send a welcome email and record the notification. Returns updated state."
+  [state base-url person]
+  (let [person-id   (:id person)
+        token       (ops/get-token-for-person state person-id)
+        people-list (get-in state [:schedule-db :people])
+        email-msg   (reminders/format-welcome-email
+                     person base-url token
+                     (:schedule-plan state) people-list)]
+    (send-email! person email-msg)
+    (tel/log! {:level :info :data {:person (:name person)}} "Welcome email sent")
+    (update state :schedule-db ops/record-welcome-notification person-id (now-str))))
 
 (>defn resolve-state!
        "Process accumulated actions (email sending) and write final state to disk.
@@ -217,6 +222,12 @@
                         (do (tel/log! {:level :warn :data {:person-id person-id}} "Skipping correction: person not found")
                             state)
                         (send-correction-for-event state base-url person action))
+
+                      :send-welcome
+                      (if-not person
+                        (do (tel/log! {:level :warn :data {:person-id person-id}} "Skipping welcome: person not found")
+                            state)
+                        (send-welcome-for-person state base-url person))
 
                  ;; Unknown action type — skip
                       (do (tel/log! {:level :warn :data {:action action}} "Unknown action type")

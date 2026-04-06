@@ -4,7 +4,16 @@
 
 ## 2026-04-06
 
-- Work on fixing email threading
+- Add PWA support: manifest, service worker, app icons, and meta tags for mobile "Add to Home Screen"
+- Refactor routes: move handler logic into page namespaces (ui.pages.schedule, ui.pages.admin.{users,events,info}), each exporting a `routes` function; routes.clj now just composes route maps with middleware
+- Move input validation helpers (valid-date?, valid-email?, etc.) to route-utils
+- Add welcome email template with dev preview route (/dev/welcome-email)
+- Support :welcome notification type in sent messages (schema, engine, admin UI)
+- Fix email sending crash: patch huff/malli version incompatibility (huff 0.1.x + malli 0.19.x)
+
+## 2026-04-06
+
+- Remove In-Reply-To/References email threading (garden-email API doesn't forward custom headers)
 
 ## 2026-04-06
 

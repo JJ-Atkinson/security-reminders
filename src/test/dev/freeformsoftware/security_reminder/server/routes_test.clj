@@ -3,7 +3,8 @@
   (:require
    [clojure.test :refer [deftest is testing]]
    [dev.freeformsoftware.security-reminder.schedule.engine :as engine]
-   [dev.freeformsoftware.security-reminder.server.routes :as routes]
+   [dev.freeformsoftware.security-reminder.ui.pages.admin.users :as pages.admin.users]
+   [dev.freeformsoftware.security-reminder.ui.pages.admin.events :as pages.admin.events]
    [dev.freeformsoftware.security-reminder.test-helpers :as h]))
 
 (defn- make-conf
@@ -33,10 +34,10 @@
 (deftest test-add-user-validation
   (h/with-test-engine
     (fn [eng]
-      (let [conf         (make-conf eng)
-            admin-routes (routes/admin-routes conf)
-            handler      (find-handler admin-routes "POST /admin/users")
-            token        (engine/get-token-for-person eng "p5")]
+      (let [conf    (make-conf eng)
+            routes  (pages.admin.users/routes conf)
+            handler (find-handler routes "POST /admin/users")
+            token   (engine/get-token-for-person eng "p5")]
 
         (testing "empty name returns 400"
           (let [resp (handler (admin-request token {:name "" :email "test@example.com"}))]
@@ -61,10 +62,10 @@
 (deftest test-add-event-validation
   (h/with-test-engine
     (fn [eng]
-      (let [conf         (make-conf eng)
-            admin-routes (routes/admin-routes conf)
-            handler      (find-handler admin-routes "POST /admin/events")
-            token        (engine/get-token-for-person eng "p5")]
+      (let [conf    (make-conf eng)
+            routes  (pages.admin.events/routes conf)
+            handler (find-handler routes "POST /admin/events")
+            token   (engine/get-token-for-person eng "p5")]
 
         (testing "empty label returns 400"
           (let [resp (handler (admin-request token
@@ -117,10 +118,10 @@
 (deftest test-template-update-validation
   (h/with-test-engine
     (fn [eng]
-      (let [conf         (make-conf eng)
-            admin-routes (routes/admin-routes conf)
-            handler      (find-handler admin-routes "POST /admin/templates")
-            token        (engine/get-token-for-person eng "p5")]
+      (let [conf    (make-conf eng)
+            routes  (pages.admin.events/routes conf)
+            handler (find-handler routes "POST /admin/templates")
+            token   (engine/get-token-for-person eng "p5")]
 
         (testing "blank template-id returns 400"
           (let [resp (handler (admin-request token {:template-id "" :people-required "2"}))]
@@ -137,10 +138,10 @@
 (deftest test-override-validation
   (h/with-test-engine
     (fn [eng]
-      (let [conf         (make-conf eng)
-            admin-routes (routes/admin-routes conf)
-            handler      (find-handler admin-routes "POST /admin/overrides")
-            token        (engine/get-token-for-person eng "p5")]
+      (let [conf    (make-conf eng)
+            routes  (pages.admin.events/routes conf)
+            handler (find-handler routes "POST /admin/overrides")
+            token   (engine/get-token-for-person eng "p5")]
 
         (testing "invalid date returns 400"
           (let [resp (handler (admin-request token

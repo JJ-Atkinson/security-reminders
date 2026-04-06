@@ -248,6 +248,14 @@
         capped        (vec (take-last notification-cap notifications))]
     (assoc db :sent-notifications capped)))
 
+(defn record-welcome-notification
+  "Add a welcome notification entry (no event-key) to :sent-notifications."
+  [db person-id now-str]
+  (let [entry         {:person-id person-id :type :welcome :sent-at now-str}
+        notifications (conj (or (:sent-notifications db) []) entry)
+        capped        (vec (take-last notification-cap notifications))]
+    (assoc db :sent-notifications capped)))
+
 (defn- build-exclusive-windows
   "Given notify-days sorted descending (e.g. [8 1]), build exclusive windows.
    Each window is [group lower-bound-exclusive? lower-bound upper-bound].

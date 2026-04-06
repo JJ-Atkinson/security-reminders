@@ -14,8 +14,7 @@
    [:id :string]
    [:name :string]
    [:email :string]
-   [:admin? :boolean]
-   [:last-email-id {:optional true} :string]])
+   [:admin? :boolean]])
 
 (def EventTemplate
   [:map
@@ -56,10 +55,10 @@
 (def SentNotification
   [:map
    [:person-id :string]
-   [:event-date :string]
+   [:event-date {:optional true} :string]
    [:event-template-id {:optional true} :string]
    [:one-off-event-id {:optional true} :string]
-   [:type [:enum :assigned :rescinded :reminder]]
+   [:type [:enum :assigned :rescinded :reminder :welcome]]
    [:sent-at :string]
    [:sent-for-reminder-group {:optional true} :int]])
 

@@ -52,3 +52,8 @@ window.positionTooltip = async function(triggerElement) {
 };
 
 console.log('positionTooltip function registered');
+
+// Register service worker for PWA installability
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js');
+}

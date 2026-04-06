@@ -126,9 +126,9 @@
           "View in Browser"]]
 
         ;; garden-email auto-appends unsubscribe + report-spam footer for subscribed users.
-        ;; {{subscribe-link}} controls placement of the opt-in confirmation link for new subscribers.
-        [:div.text-center.text-xs.text-gray-400.mt-16
-         (h/raw "{{subscribe-link}}")]]]))))
+        ;; {{subscribe-link}} is only interpolated server-side for pending (unconfirmed) recipients;
+        ;; for already-subscribed recipients the placeholder is left as literal text, so we omit it.
+        ]]))))
 
 ;; =============================================================================
 ;; Public API
@@ -155,6 +155,19 @@
                 [:div.text-lg (str prefix ": You're assigned to " event-label)]
                 [:div.text-sm.mt-1 (str "Date: " display)]]
                plan people-list person base-url token)}))
+
+(defn format-welcome-email
+  "Returns {:subject :text :html} for a welcome email."
+  [person base-url token plan people-list]
+  {:subject "Welcome to Security Reminder"
+   :text    (str "Hi " (:name person)
+                 ", welcome to Security Reminder!"
+                 " View your schedule: " base-url "/" token "/schedule")
+   :html    (email-html
+             [:div
+              [:div.text-lg (str "Welcome, " (:name person) "!")]
+              [:div.text-sm.mt-1 "You've been added to the security duty rotation."]]
+             plan people-list person base-url token)})
 
 (defn format-correction-email
   "Returns {:subject :text :html} for a correction."
