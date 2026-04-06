@@ -1,16 +1,16 @@
 (ns dev.freeformsoftware.security-reminder.schedule.ops-test
-  "Pure scenario tests for schedule.ops — no I/O, no temp dirs, no SMS."
+  "Pure scenario tests for schedule.ops — no I/O, no temp dirs, no email."
   (:require
    [clojure.test :refer [deftest is testing]]
    [dev.freeformsoftware.security-reminder.schedule.ops :as ops]
    [dev.freeformsoftware.security-reminder.schedule.projection :as projection]))
 
 (def test-people
-  [{:id "p1" :name "Alice" :phone "+1111" :admin? false}
-   {:id "p2" :name "Bob" :phone "+2222" :admin? false}
-   {:id "p3" :name "Carol" :phone "+3333" :admin? false}
-   {:id "p4" :name "Dave" :phone "+4444" :admin? false}
-   {:id "p5" :name "Eve" :phone "+5555" :admin? true}])
+  [{:id "p1" :name "Alice" :email "alice@test.local" :admin? false}
+   {:id "p2" :name "Bob" :email "bob@test.local" :admin? false}
+   {:id "p3" :name "Carol" :email "carol@test.local" :admin? false}
+   {:id "p4" :name "Dave" :email "dave@test.local" :admin? false}
+   {:id "p5" :name "Eve" :email "eve@test.local" :admin? true}])
 
 (def test-templates
   [{:id "et-1" :label "Wed Evening" :day-of-week 3 :time-label :evening :people-required 2}

@@ -1,11 +1,5 @@
 (ns dev.freeformsoftware.security-reminder.config
-  "Application configuration loader.
-
-   In prod, Twilio secrets are read from environment variables
-   (set via `garden secrets add`):
-     - TWILIO_ACCOUNT_SID
-     - TWILIO_AUTH_TOKEN
-     - TWILIO_FROM_NUMBER"
+  "Application configuration loader."
   (:require
    [clojure.java.io :as io]
    [clojure.walk :as walk]
@@ -33,25 +27,6 @@
   "Returns the GARDEN_STORAGE path if set, nil otherwise."
   []
   (System/getenv "GARDEN_STORAGE"))
-
-(defn read-prod-env-secrets
-  "Read Twilio secrets from environment variables (for prod/Garden).
-   Warns and uses placeholders if any are missing (safe when twilio-mock? is true)."
-  []
-  (let [required {"TWILIO_ACCOUNT_SID" :twilio-account-sid
-                  "TWILIO_AUTH_TOKEN"  :twilio-auth-token
-                  "TWILIO_FROM_NUMBER" :twilio-from-number}
-        env-vals (into {}
-                       (map (fn [[env-var k]]
-                              [k (or (System/getenv env-var) "NOT_SET")])
-                            required))
-        missing  (keep (fn [[env-var _k]]
-                         (when (str/blank? (System/getenv env-var))
-                           env-var))
-                       required)]
-    (when (seq missing)
-      (tel/log! {:level :warn :data {:missing missing}} "Missing Twilio environment variables (SMS will not work)"))
-    (assoc env-vals :twilio-mock? true)))
 
 (defn read-config-files!
   [enable-prod?]
@@ -99,10 +74,6 @@
                            {:readers {'n/ref             reader-nref
                                       'n/reader-file-str reader-file-str}}))
              (reduce deep-merge))
-        ;; In prod, merge env-var secrets before resolving nrefs
-        full-config (if enable-prod?
-                      (deep-merge full-config (read-prod-env-secrets))
-                      full-config)
         full-config (resolve-nrefs full-config)
         ;; Resolve db-folder: use GARDEN_STORAGE in prod if available
         full-config (if-let [gs (garden-storage-path)]

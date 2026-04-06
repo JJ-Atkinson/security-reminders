@@ -13,7 +13,9 @@
      ;; Schema definition used for documentation/validation
      dev.freeformsoftware.security-reminder.db.schema/Plan
      ;; Dev REPL utility
-     user/portal}}}
+     user/portal
+     ;; Kept for potential future use (token rotation disabled in send flow)
+     dev.freeformsoftware.security-reminder.schedule.engine/rotate-token!}}}
 
  :config-in-ns
  {dev.freeformsoftware.security-reminder.ui.html-fragments

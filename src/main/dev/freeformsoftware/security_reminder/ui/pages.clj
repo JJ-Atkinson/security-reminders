@@ -2,6 +2,7 @@
   (:require
    [dev.freeformsoftware.security-reminder.ui.html-fragments :as ui.frag]
    [dev.freeformsoftware.security-reminder.schedule.engine :as engine]
+   [dev.freeformsoftware.security-reminder.schedule.projection :as proj]
    [dev.freeformsoftware.security-reminder.logging.log-buffer :as log-buffer]
    [hiccup2.core :as h]
    [ring.util.response :as resp]
@@ -56,7 +57,7 @@
         absent-names   (format-people-names people-list absent)]
     [:div
      [:div.flex.flex-wrap.items-center.gap-2.font-bold
-      [:span date]
+      [:span (proj/display-date date)]
       [:span "\u00b7"]
       [:span label]
       (when (:people-required-override? overrides)
@@ -135,7 +136,6 @@
           :class (into ui.frag/small-button-classes
                        ["hover:border-teal-800" "hover:bg-teal-200"])}
          "Reset"]])]))
-
 
 (defn- event-card
   "Render a single event as a card on the schedule page."
@@ -270,7 +270,8 @@
   "Admin page for managing people."
   [{:keys [engine] :as conf} request]
   (let [people    (engine/list-people engine)
-        sec-token (:sec-token request)]
+        sec-token (:sec-token request)
+        base-url  (:base-url engine)]
     (admin-page-shell conf
                       request
                       :users
@@ -290,9 +291,9 @@
                            :required    true
                            :class       ui.frag/input-classes}]
                          [:input
-                          {:type        "tel"
-                           :name        "phone"
-                           :placeholder "Phone (e.g. +15551234567)"
+                          {:type        "email"
+                           :name        "email"
+                           :placeholder "Email"
                            :required    true
                            :class       ui.frag/input-classes}]
                          [:label.flex.items-center.gap-2
@@ -304,20 +305,35 @@
                           "Admin"]
                          [:button {:type "submit" :class ui.frag/button-classes} "Add Person"]]]
                        [:div.flex.flex-col.gap-2
-                        (for [person (sort-by :name people)]
+                        (for [person (sort-by :name people)
+                              :let [token (engine/get-token-for-person engine (:id person))
+                                    link  (when token (str base-url "/" token "/schedule"))]]
                           [:div.rounded.border.border-gray-200.bg-white.p-3
-                           [:div.flex.justify-between.items-start
-                            [:div
-                             [:span.font-bold (:name person)]
-                             (when (:admin? person)
-                               [:span.ml-2.text-yellow-600 "\u2605"])
-                             [:span.ml-3.text-gray-500.text-sm (:phone person)]]
-                            [:form
-                             {:method   "POST"
-                              :action   (str "/" sec-token "/admin/users/delete")
-                              :onsubmit "return confirm('Remove this person?')"}
-                             (hidden-input "person-id" (:id person))
-                             [:button {:type "submit" :class ui.frag/delete-button-classes} "Delete"]]]])]])))
+                           [:div
+                            [:span.font-bold (:name person)]
+                            (when (:admin? person)
+                              [:span.ml-2.text-yellow-600 "\u2605"])
+                            [:div.text-gray-500.text-sm (:email person)]]
+                           [:div.flex.flex-wrap.items-center.gap-2.mt-2
+                            (when link
+                              [:a.text-blue-600.text-sm.underline
+                               {:href link}
+                               (str "View " (:name person) " schedule")])
+                            [:div.flex.items-center.gap-2.ml-auto
+                             (when link
+                               [:button
+                                {:class (into ["text-sm" "whitespace-nowrap"] ui.frag/button-classes)
+                                 :_     (str "on click writeText('" link "') into navigator.clipboard"
+                                             " then put 'Copied!' into me"
+                                             " wait 1.5s"
+                                             " then put 'Copy Link' into me")}
+                                "Copy Link"])
+                             [:form
+                              {:method   "POST"
+                               :action   (str "/" sec-token "/admin/users/delete")
+                               :onsubmit "return confirm('Remove this person?')"}
+                              (hidden-input "person-id" (:id person))
+                              [:button {:type "submit" :class ui.frag/delete-button-classes} "Delete"]]]]])]])))
 
 (defn- admin-event-card
   "Render an event card on the admin events page with override/delete controls."
@@ -489,7 +505,7 @@
                                               [:span "\u00b7"]
                                               [:span event-label]
                                               [:span "\u00b7"]
-                                              [:span (:event-date n)]]
+                                              [:span (proj/display-date (:event-date n))]]
                                              [:div.text-xs.text-gray-400 (str "Sent: " (:sent-at n))]])))])])))
 
 (defn- find-plan-entry
@@ -542,7 +558,7 @@
                        [:div
                         [:h2.text-2xl.font-bold "Edit Assigned Users"]
                         [:p.text-gray-600.mt-1
-                         (str event-date " \u00b7 " (or (:label entry) "(not in plan window)"))
+                         (str (proj/display-date event-date) " \u00b7 " (or (:label entry) "(not in plan window)"))
                          (when override
                            [:span.text-indigo-600.ml-2 "(currently overridden)"])]]
                        (when error

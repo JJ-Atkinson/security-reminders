@@ -32,6 +32,7 @@
             pkgs.zprint
 
             pkgs.babashka
+            pkgs.bbin
             pkgs.clj-kondo
             pkgs.clojure-lsp
 

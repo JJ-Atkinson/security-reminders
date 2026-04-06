@@ -3,5 +3,4 @@
 (require '[lambdaisland.launchpad :as launchpad])
 
 (launchpad/main {:go true
-                 :aliases [:dev]
                  :extra-java-args ["-Dguardrails.enabled"]})

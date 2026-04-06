@@ -5,14 +5,15 @@
    [dev.freeformsoftware.security-reminder.server.websocket :as websocket]
    [dev.freeformsoftware.security-reminder.server.auth-middleware :as auth-middleware]
    [dev.freeformsoftware.security-reminder.schedule.engine :as engine]
+   [dev.freeformsoftware.security-reminder.schedule.reminders :as reminders]
    [dev.freeformsoftware.security-reminder.schedule.time-layer :as time-layer]
    [dev.freeformsoftware.security-reminder.logging.log-buffer :as log-buffer]
    [dev.freeformsoftware.security-reminder.ui.pages :as ui.pages]
    [hiccup2.core :as h]
    [ring.util.response :as resp])
   (:import
-    [java.time LocalDate]
-    [java.time.format DateTimeParseException]))
+   [java.time LocalDate]
+   [java.time.format DateTimeParseException]))
 
 (set! *warn-on-reflection* true)
 
@@ -27,10 +28,10 @@
          true
          (catch DateTimeParseException _ false))))
 
-(defn- valid-phone?
+(defn- valid-email?
   [s]
   (and (string? s)
-       (re-matches #"\+[0-9]{7,15}" s)))
+       (re-matches #".+@.+\..+" s)))
 
 (defn- valid-name?
   [s]
@@ -86,7 +87,21 @@
                                                    (:one-off-id params)
                                                    (assoc :one-off-id (:one-off-id params)))]
                                    (engine/note-absence! env (:id person) event-key)
-                                   (ui.pages/schedule-partial conf request)))))})
+                                   (ui.pages/schedule-partial conf request)))))
+   "GET /absences/toggle"  (fn [request]
+                             (let [params     (:params request)
+                                   event-date (:event-date params)]
+                               (if-not (valid-date? event-date)
+                                 (bad-request "Invalid event date")
+                                 (let [env       (time-layer/scheduler-env time-layer)
+                                       person    (:person request)
+                                       event-key (cond-> {:date event-date}
+                                                   (:template-id params)
+                                                   (assoc :template-id (:template-id params))
+                                                   (:one-off-id params)
+                                                   (assoc :one-off-id (:one-off-id params)))]
+                                   (engine/note-absence! env (:id person) event-key)
+                                   (resp/redirect (str "/" (:sec-token request) "/schedule"))))))})
 
 ;; =============================================================================
 ;; Admin routes
@@ -105,16 +120,16 @@
    "POST /admin/users" (fn [request]
                          (let [params (:params request)
                                pname  (:name params)
-                               phone  (:phone params)
+                               email  (:email params)
                                admin? (= "true" (:admin params))]
                            (cond
                              (not (valid-name? pname))
                              (bad-request "Name is required")
-                             (not (valid-phone? phone))
-                             (bad-request "Phone must be E.164 format (e.g. +15551234567)")
+                             (not (valid-email? email))
+                             (bad-request "Valid email is required")
                              :else
                              (let [env (time-layer/scheduler-env time-layer)]
-                               (engine/add-person! env {:name (str/trim pname) :phone phone :admin? admin?})
+                               (engine/add-person! env {:name (str/trim pname) :email email :admin? admin?})
                                (resp/redirect (str "/" (:sec-token request) "/admin/users"))))))
    "POST /admin/users/delete" (fn [request]
                                 (let [person-id (:person-id (:params request))]
@@ -300,10 +315,40 @@
                             "Schedule"]
                            [:span.text-gray-400 "No token"])]])]]]]]))}))
 
+(defn- preview-email
+  "Render a sample email using real DB data. Returns HTML response."
+  [engine email-type]
+  (let [people  (engine/list-people engine)
+        person  (first people)
+        plan    (engine/view-plan engine)
+        token   (engine/get-token-for-person engine (:id person))
+        base-url (:base-url engine)
+        link    (str base-url "/" token "/schedule")
+        ;; Pick the first plan entry for context
+        entry   (first plan)
+        email   (case email-type
+                  :reminder
+                  (reminders/format-reminder-email
+                   person
+                   (or (:label entry) "Wed Evening")
+                   (or (:date entry) "2026-04-01")
+                   link 8 plan people)
+                  :correction
+                  (reminders/format-correction-email
+                   :assigned person
+                   (or (:label entry) "Wed Evening")
+                   (or (:date entry) "2026-04-01")
+                   link plan people))]
+    {:status  200
+     :headers {"Content-Type" "text/html" "X-Robots-Tag" "noindex"}
+     :body    (:html email)}))
+
 (defn dev-routes
   [{:keys [engine]}]
-  {"GET /dev/reload-ws" websocket/reload-handler
-   "GET /dev/login"     (fn [_] (dev-login-page engine))})
+  {"GET /dev/reload-ws"       websocket/reload-handler
+   "GET /dev/login"           (fn [_] (dev-login-page engine))
+   "GET /dev/reminder-email"  (fn [_] (preview-email engine :reminder))
+   "GET /dev/correction-email" (fn [_] (preview-email engine :correction))})
 
 ;; =============================================================================
 ;; Route assembly
