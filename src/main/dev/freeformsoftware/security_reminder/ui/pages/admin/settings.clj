@@ -22,6 +22,8 @@
       [:div#push-section
        [:h3.text-lg.font-semibold "Push Notifications"]
        [:p.text-sm.text-gray-600 "Enable push notifications to get reminders on this device."]
+       (when-not (seq vapid-public-key)
+         [:p.text-sm.text-red-600.font-bold "VAPID keys not configured. Run bin/generate-vapid-keys and set the Garden secrets."])
        [:div.mt-2
         [:button#enable-push
          {:class (into ["hidden"] ui.frag/button-classes)

@@ -70,7 +70,7 @@ bin/generate-vapid-keys
   ```bash
   garden secrets add VAPID_PUBLIC_KEY
   garden secrets add VAPID_PRIVATE_KEY
-  garden secrets add VAPID_SUBJECT   # e.g. mailto:admin@yourdomain.com
+  garden secrets add VAPID_SUBJECT   # MUST include mailto: prefix, e.g. mailto:admin@yourdomain.com
   ```
 
 ### Secrets

@@ -1,58 +1,50 @@
 (ns dev.freeformsoftware.security-reminder.push.send
-  "Web Push notification sending. Combines VAPID auth, RFC 8291 encryption,
-   and HTTP delivery via clj-http-lite."
+  "Web Push notification sending via webpush-java library."
   (:require
    [cheshire.core :as json]
-   [clj-http.lite.client :as http]
-   [dev.freeformsoftware.security-reminder.push.encryption :as encryption]
-   [dev.freeformsoftware.security-reminder.push.vapid :as vapid]
    [dev.freeformsoftware.security-reminder.schedule.ops :as ops]
-   [taoensso.telemere :as tel]))
+   [taoensso.telemere :as tel])
+  (:import
+   [nl.martijndwars.webpush Notification PushService]
+   [org.bouncycastle.jce.provider BouncyCastleProvider]
+   [java.security Security]))
 
 (set! *warn-on-reflection* true)
 
-(defn- endpoint->origin
-  "Extract the origin (scheme + host + port) from a push endpoint URL."
-  ^String [^String endpoint]
-  (let [url (java.net.URI. endpoint)]
-    (str (.getScheme url) "://" (.getHost url)
-         (when (pos? (.getPort url)) (str ":" (.getPort url))))))
+;; BouncyCastle must be registered before PushService can work
+(when-not (Security/getProvider "BC")
+  (Security/addProvider (BouncyCastleProvider.)))
+
+(defn- build-push-service
+  ^PushService [{:keys [vapid-public-key vapid-private-key vapid-subject]}]
+  (PushService. vapid-public-key vapid-private-key vapid-subject))
 
 (defn send-push-notification!
   "Send a push notification to a single subscription.
    Returns :ok, :gone (subscription expired), or :error."
-  [{:keys [vapid-private-key vapid-public-key vapid-subject]} subscription payload-str]
-  (let [endpoint  (:endpoint subscription)
-        priv-key  (vapid/load-private-key vapid-private-key)
-        origin    (endpoint->origin endpoint)
-        auth-hdr  (vapid/vapid-authorization-header
-                   priv-key vapid-public-key origin vapid-subject)
-        encrypted (encryption/encrypt-payload
-                   (:p256dh subscription)
-                   (:auth subscription)
-                   (.getBytes ^String payload-str "UTF-8"))]
-    (try
-      (let [resp (http/post endpoint
-                            {:body    encrypted
-                             :headers {"Authorization"    auth-hdr
-                                       "Content-Type"     "application/octet-stream"
-                                       "Content-Encoding" "aes128gcm"
-                                       "TTL"              "86400"}
-                             :as      :stream
-                             :throw-exceptions false})]
-        (cond
-          (<= 200 (:status resp) 299) :ok
-          (= 410 (:status resp))      :gone
-          :else
-          (do (tel/log! {:level :warn
-                         :data  {:status (:status resp) :endpoint endpoint}}
-                        "Push notification delivery failed")
-              :error)))
-      (catch Exception e
-        (tel/log! {:level :warn
-                   :data  {:endpoint endpoint :error (ex-message e)}}
-                  "Push notification HTTP error")
-        :error))))
+  [push-conf subscription payload-str]
+  (try
+    (let [svc          (build-push-service push-conf)
+          notification (Notification. ^String (:endpoint subscription)
+                                      ^String (:p256dh subscription)
+                                      ^String (:auth subscription)
+                                      (.getBytes ^String payload-str "UTF-8"))
+          response     (.send svc notification)
+          status       (.getStatusLine response)
+          status-code  (.getStatusCode status)]
+      (cond
+        (<= 200 status-code 299) :ok
+        (= 410 status-code)      :gone
+        :else
+        (do (tel/log! {:level :warn
+                       :data  {:status status-code :endpoint (:endpoint subscription)}}
+                      "Push notification delivery failed")
+            :error)))
+    (catch Exception e
+      (tel/log! {:level :warn
+                 :data  {:endpoint (:endpoint subscription) :error (ex-message e)}}
+                "Push notification error")
+      :error)))
 
 (defn send-push-to-person!
   "Send a push notification to all subscriptions for a person.

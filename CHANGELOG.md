@@ -4,6 +4,14 @@
 
 ## 2026-04-06
 
+- Replace hand-rolled VAPID/RFC 8291 crypto with `nl.martijndwars/web-push` library; delete `vapid.clj` and `encryption.clj`
+- Remove `clj-http-lite` dependency (webpush-java handles HTTP internally)
+- Add visible success/failure feedback on push notification enable button
+- Add `Notification.requestPermission()` call before subscribing (required by iOS)
+- Show warning on settings page when VAPID keys are not configured
+
+## 2026-04-06
+
 - Fix push button not showing on iOS: use hyperscript `init` instead of `on load`, consolidate eligibility check into single async `shouldShowPushButton()`
 
 ## 2026-04-06

@@ -20,7 +20,8 @@
         com.taoensso/telemere-slf4j                 {:mvn/version "1.1.0"}
         better-cond/better-cond                     {:mvn/version "2.1.5"}
 
-        org.clj-commons/clj-http-lite                {:mvn/version "1.0.13"}
+        nl.martijndwars/web-push                     {:mvn/version "5.1.2"}
+        org.bouncycastle/bcprov-jdk18on              {:mvn/version "1.80"}
         zprint/zprint                               {:mvn/version "1.2.9"}
         com.fulcrologic/guardrails                 {:mvn/version "1.2.5"}
         io.github.nextjournal/garden-cron           {:git/sha "2873ed17337b2e00d4f776b8093832c1f490a46e"}
