@@ -38,12 +38,13 @@
   "Read Twilio secrets from environment variables (for prod/Garden).
    Warns and uses placeholders if any are missing (safe when twilio-mock? is true)."
   []
-  (let [required {"TWILIO_ACCOUNT_SID"  :twilio-account-sid
-                  "TWILIO_AUTH_TOKEN"   :twilio-auth-token
-                  "TWILIO_FROM_NUMBER"  :twilio-from-number}
-        env-vals (into {} (map (fn [[env-var k]]
-                                 [k (or (System/getenv env-var) "NOT_SET")])
-                               required))
+  (let [required {"TWILIO_ACCOUNT_SID" :twilio-account-sid
+                  "TWILIO_AUTH_TOKEN"  :twilio-auth-token
+                  "TWILIO_FROM_NUMBER" :twilio-from-number}
+        env-vals (into {}
+                       (map (fn [[env-var k]]
+                              [k (or (System/getenv env-var) "NOT_SET")])
+                            required))
         missing  (keep (fn [[env-var _k]]
                          (when (str/blank? (System/getenv env-var))
                            env-var))
@@ -95,8 +96,8 @@
   (let [full-config
         (->> (read-config-files! enable-prod?)
              (map (partial ig/read-string
-                          {:readers {'n/ref             reader-nref
-                                     'n/reader-file-str reader-file-str}}))
+                           {:readers {'n/ref             reader-nref
+                                      'n/reader-file-str reader-file-str}}))
              (reduce deep-merge))
         ;; In prod, merge env-var secrets before resolving nrefs
         full-config (if enable-prod?

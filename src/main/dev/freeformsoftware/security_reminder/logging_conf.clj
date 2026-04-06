@@ -14,7 +14,9 @@
   "Load zprintrc.edn from classpath (copied by build-resources) and apply.
    Falls back to .zprintrc in the working directory for dev."
   []
-  (when-let [opts (or (some-> (io/resource "config/zprintrc.edn") slurp edn/read-string)
+  (when-let [opts (or (some-> (io/resource "config/zprintrc.edn")
+                              slurp
+                              edn/read-string)
                       (let [f (io/file ".zprintrc")]
                         (when (.exists f)
                           (edn/read-string (slurp f)))))]

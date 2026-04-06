@@ -75,10 +75,11 @@
 
 (def PlanEntry
   [:map
-   [:event-key [:map
-                [:date :string]
-                [:template-id {:optional true} :string]
-                [:one-off-id {:optional true} :string]]]
+   [:event-key
+    [:map
+     [:date :string]
+     [:template-id {:optional true} :string]
+     [:one-off-id {:optional true} :string]]]
    [:label :string]
    [:date :string]
    [:time-label [:enum :morning :afternoon :evening]]
@@ -106,18 +107,21 @@
 (>def ::plan-entry PlanEntry)
 (>def ::schedule-db ScheduleDb)
 
-(>def ::event-key [:map [:date ::date-str]
-                   [:template-id {:optional true} :string]
-                   [:one-off-id {:optional true} :string]])
-(>def ::state [:map
-               [:schedule-db ::schedule-db]
-               [:schedule-plan [:vector ::plan-entry]]
-               [:actions vector?]])
-(>def ::twilio-conf [:map
-                     [:twilio-account-sid :string]
-                     [:twilio-auth-token :string]
-                     [:twilio-from-number :string]
-                     [:twilio-mock? :boolean]])
+(>def ::event-key
+      [:map [:date ::date-str]
+       [:template-id {:optional true} :string]
+       [:one-off-id {:optional true} :string]])
+(>def ::state
+      [:map
+       [:schedule-db ::schedule-db]
+       [:schedule-plan [:vector ::plan-entry]]
+       [:actions vector?]])
+(>def ::twilio-conf
+      [:map
+       [:twilio-account-sid :string]
+       [:twilio-auth-token :string]
+       [:twilio-from-number :string]
+       [:twilio-mock? :boolean]])
 
 ;; =============================================================================
 ;; Event-key conversion utilities
@@ -131,7 +135,7 @@
   [::event-key => map?]
   (cond-> {:event-date (:date event-key)}
     (:template-id event-key) (assoc :event-template-id (:template-id event-key))
-    (:one-off-id event-key) (assoc :one-off-event-id (:one-off-id event-key))))
+    (:one-off-id event-key)  (assoc :one-off-event-id (:one-off-id event-key))))
 
 (>defn flat-keys->event-key
   "Convert flat storage keys back to a canonical event-key."
@@ -139,7 +143,7 @@
   [[:map [:event-date ::date-str]] => map?]
   (cond-> {:date (:event-date flat)}
     (:event-template-id flat) (assoc :template-id (:event-template-id flat))
-    (:one-off-event-id flat) (assoc :one-off-id (:one-off-event-id flat))))
+    (:one-off-event-id flat)  (assoc :one-off-id (:one-off-event-id flat))))
 
 (>defn flat-record-matches-event-key?
   "Check if a flat-keyed record (absence, notification, etc.) matches a canonical event-key."

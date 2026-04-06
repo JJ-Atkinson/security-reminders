@@ -33,8 +33,8 @@
    Returns a vector of {:person-id :event-key :action (:assigned or :rescinded) :plan-entry}."
   [plan sent-notifications today-str]
   [sequential? sequential? ::schema/date-str => vector?]
-  (let [today (LocalDate/parse today-str)
-        latest (latest-notification-by-person-event sent-notifications)
+  (let [today       (LocalDate/parse today-str)
+        latest      (latest-notification-by-person-event sent-notifications)
         ;; Index plan entries by event-key
         plan-by-key (into {} (map (juxt :event-key identity)) plan)]
     (reduce-kv
@@ -49,18 +49,20 @@
                ;; Was told :assigned/:reminder but no longer assigned -> rescind
                (and (#{:assigned :reminder} (:type notification))
                     (not currently-assigned?))
-               (conj corrections {:person-id person-id
-                                  :event-key event-key
-                                  :action :rescinded
-                                  :plan-entry plan-entry})
+               (conj corrections
+                     {:person-id  person-id
+                      :event-key  event-key
+                      :action     :rescinded
+                      :plan-entry plan-entry})
 
                ;; Was told :rescinded but now assigned -> assign
                (and (= :rescinded (:type notification))
                     currently-assigned?)
-               (conj corrections {:person-id person-id
-                                  :event-key event-key
-                                  :action :assigned
-                                  :plan-entry plan-entry})
+               (conj corrections
+                     {:person-id  person-id
+                      :event-key  event-key
+                      :action     :assigned
+                      :plan-entry plan-entry})
 
                :else corrections)))))
      []

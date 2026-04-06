@@ -25,22 +25,26 @@
 ;; File I/O helpers
 ;; =============================================================================
 
-(defn- db-path ^String [db-folder]
+(defn- db-path
+  ^String [db-folder]
   (str (fs/path db-folder "schedule-db.edn")))
 
-(defn- plan-path ^String [db-folder]
+(defn- plan-path
+  ^String [db-folder]
   (str (fs/path db-folder "schedule-plan.edn")))
 
-(defn- backup-path ^String [path]
+(defn- backup-path
+  ^String [path]
   (str path ".bak"))
 
 (defn- write-edn!
   "Atomically write EDN data to a file with zprint formatting and backup."
   [path data]
-  (let [path-str (str path)
-        tmp-path (str path-str ".tmp")
-        formatted (zp/zprint-str data {:map {:comma? false}
-                                       :width 100})]
+  (let [path-str  (str path)
+        tmp-path  (str path-str ".tmp")
+        formatted (zp/zprint-str data
+                                 {:map   {:comma? false}
+                                  :width 100})]
     (spit tmp-path formatted)
     (when (fs/exists? path-str)
       (fs/copy path-str (backup-path path-str) {:replace-existing true}))
@@ -105,7 +109,7 @@
   ([existing-tokens]
    [[:maybe set?] => :string]
    (let [rng (java.security.SecureRandom.)
-         n (count base46-chars)]
+         n   (count base46-chars)]
      (loop [attempts 0]
        (let [token (apply str (repeatedly 6 #(nth base46-chars (.nextInt rng n))))]
          (if (and existing-tokens (contains? existing-tokens token))
@@ -128,10 +132,10 @@
   "Read db + plan from disk → state map. Includes config needed by pure ops."
   [{:keys [db-folder notify-at-days-before]}]
   [[:map [:db-folder :string]] => map?]
-  {:schedule-db   (or (read-edn (db-path db-folder)) {})
-   :schedule-plan (or (read-edn (plan-path db-folder)) [])
+  {:schedule-db           (or (read-edn (db-path db-folder)) {})
+   :schedule-plan         (or (read-edn (plan-path db-folder)) [])
    :notify-at-days-before (or notify-at-days-before [1])
-   :actions       []})
+   :actions               []})
 
 (>defn resolve-state!
   "Process accumulated actions (SMS sending, token rotation) and write final state to disk.
@@ -148,33 +152,45 @@
              (case (:type action)
                :send-reminder
                (let [person-id (:person-id action)
-                     person (get people-by-id person-id)]
+                     person    (get people-by-id person-id)]
                  (if-not person
                    (do (tel/log! {:level :warn :data {:person-id person-id}} "Skipping reminder: person not found")
                        state)
-                   (let [new-token (generate-token)
-                         state (ops/rotate-token state person-id new-token)
-                         link (str base-url "/" new-token "/schedule")
+                   (let [new-token      (generate-token)
+                         state          (ops/rotate-token state person-id new-token)
+                         link           (str base-url "/" new-token "/schedule")
                          reminder-group (:reminder-group action)
-                         msg (reminders/format-reminder-sms (:name person) (:event-label action) (:event-date action) link reminder-group)]
+                         msg            (reminders/format-reminder-sms (:name person)
+                                                                       (:event-label action)
+                                                                       (:event-date action)
+                                                                       link
+                                                                       reminder-group)]
                      (when twilio-conf
                        (twilio/send-sms! twilio-conf (:phone person) msg))
-                     (tel/log! {:level :info :data {:person (:name person) :event (:event-label action) :group reminder-group}} "Reminder sent")
+                     (tel/log! {:level :info
+                                :data  {:person (:name person) :event (:event-label action) :group reminder-group}}
+                               "Reminder sent")
                      state)))
 
                :send-correction
                (let [person-id (:person-id action)
-                     person (get people-by-id person-id)]
+                     person    (get people-by-id person-id)]
                  (if-not person
                    (do (tel/log! {:level :warn :data {:person-id person-id}} "Skipping correction: person not found")
                        state)
-                   (let [token (ops/get-token-for-person state person-id)
-                         link (str base-url "/" token "/schedule")
+                   (let [token           (ops/get-token-for-person state person-id)
+                         link            (str base-url "/" token "/schedule")
                          correction-type (:correction-type action)
-                         msg (reminders/format-correction-sms correction-type (:name person) (:event-label action) (:event-date action) link)]
+                         msg             (reminders/format-correction-sms correction-type
+                                                                          (:name person)
+                                                                          (:event-label action)
+                                                                          (:event-date action)
+                                                                          link)]
                      (when twilio-conf
                        (twilio/send-sms! twilio-conf (:phone person) msg))
-                     (tel/log! {:level :info :data {:person (:name person) :action correction-type :event (:event-label action)}} "Correction sent")
+                     (tel/log! {:level :info
+                                :data  {:person (:name person) :action correction-type :event (:event-label action)}}
+                               "Correction sent")
                      state)))
 
                ;; Unknown action type — skip
@@ -200,7 +216,8 @@
   [env & body]
   `(let [env# ~env]
      (locking (:lock env#)
-       (->> (-> (fetch-state env#) ~@body)
+       (->> (-> (fetch-state env#)
+                ~@body)
             (resolve-state! env#)))))
 
 ;; =============================================================================
@@ -229,7 +246,7 @@
   "Returns person map if token is valid, nil otherwise."
   [{:keys [db-folder]} token]
   [[:map [:db-folder :string]] :string => any?]
-  (let [db (read-edn (db-path db-folder))
+  (let [db        (read-edn (db-path db-folder))
         person-id (get (:sec-tokens db) token)]
     (when person-id
       (some #(when (= (:id %) person-id) %) (:people db)))))
@@ -274,18 +291,18 @@
   [env person-id event-key]
   [map? :string ::schema/event-key => any?]
   (with-state!-> env
-    (ops/note-absence person-id event-key (:today-str env))))
+                 (ops/note-absence person-id event-key (:today-str env))))
 
 (>defn add-person!
   "Add a new person to the DB. Generates a token for them."
   [env {:keys [name phone admin?]}]
   [map? [:map [:name :string] [:phone ::schema/phone] [:admin? :boolean]] => :string]
-  (let [id (str "p-" (System/currentTimeMillis))
+  (let [id       (str "p-" (System/currentTimeMillis))
         existing (set (keys (:sec-tokens (read-edn (db-path (:db-folder env))))))
-        token (generate-token existing)]
+        token    (generate-token existing)]
     (with-state!-> env
-      (ops/add-person {:id id :name name :phone phone :admin? (boolean admin?)} (:today-str env))
-      (ops/rotate-token id token))
+                   (ops/add-person {:id id :name name :phone phone :admin? (boolean admin?)} (:today-str env))
+                   (ops/rotate-token id token))
     id))
 
 (>defn remove-person!
@@ -293,7 +310,7 @@
   [env person-id]
   [map? :string => any?]
   (with-state!-> env
-    (ops/remove-person person-id (:today-str env))))
+                 (ops/remove-person person-id (:today-str env))))
 
 (>defn add-one-off!
   "Add a one-off event."
@@ -301,99 +318,102 @@
   [map? [:map [:label :string] [:date ::schema/date-str] [:time-label ::schema/time-label]] => any?]
   (let [id (str "oo-" (System/currentTimeMillis))]
     (with-state!-> env
-      (ops/add-one-off {:id id :label label :date date
-                        :time-label time-label
-                        :people-required (or people-required 2)}
-                       (:today-str env)))))
+                   (ops/add-one-off {:id              id
+                                     :label           label
+                                     :date            date
+                                     :time-label      time-label
+                                     :people-required (or people-required 2)}
+                                    (:today-str env)))))
 
 (>defn remove-one-off!
   "Remove a one-off event by ID."
   [env event-id]
   [map? :string => any?]
   (with-state!-> env
-    (ops/remove-one-off event-id (:today-str env))))
+                 (ops/remove-one-off event-id (:today-str env))))
 
 (>defn update-template!
   "Modify an event template."
   [env template-id updates]
   [map? :string map? => any?]
   (with-state!-> env
-    (ops/update-template template-id updates (:today-str env))))
+                 (ops/update-template template-id updates (:today-str env))))
 
 (>defn set-instance-override!
   "Upsert a per-instance people-required override."
   [env event-date template-id people-required]
   [map? ::schema/date-str :string :int => any?]
   (with-state!-> env
-    (ops/set-instance-override event-date template-id people-required (:today-str env))))
+                 (ops/set-instance-override event-date template-id people-required (:today-str env))))
 
 (>defn remove-instance-override!
   "Remove a per-instance override."
   [env event-date template-id]
   [map? ::schema/date-str :string => any?]
   (with-state!-> env
-    (ops/remove-instance-override event-date template-id (:today-str env))))
+                 (ops/remove-instance-override event-date template-id (:today-str env))))
 
 (>defn set-assignment-override!
   "Set a manual assignment override for a specific event instance."
   [env event-key assigned-ids]
   [map? ::schema/event-key sequential? => any?]
   (with-state!-> env
-    (ops/set-assignment-override event-key assigned-ids (:today-str env))))
+                 (ops/set-assignment-override event-key assigned-ids (:today-str env))))
 
 (>defn remove-assignment-override!
   "Remove a manual assignment override."
   [env event-key]
   [map? ::schema/event-key => any?]
   (with-state!-> env
-    (ops/remove-assignment-override event-key (:today-str env))))
+                 (ops/remove-assignment-override event-key (:today-str env))))
 
 (>defn refresh-plan!
   "Called by daily cron to roll the 8-week window forward."
   [env]
   [map? => any?]
   (with-state!-> env
-    (ops/refresh-plan (:today-str env))))
+                 (ops/refresh-plan (:today-str env))))
 
 (>defn record-notification-sent!
   "Record a sent notification. Used by legacy callers."
   [env person-id event-key type]
   [map? :string ::schema/event-key keyword? => any?]
   (with-state!-> env
-    (update :schedule-db
-            (fn [db]
-              (let [entry (cond-> {:person-id person-id
-                                   :event-date (:date event-key)
-                                   :type type
-                                   :sent-at (now-str)}
-                            (:template-id event-key) (assoc :event-template-id (:template-id event-key))
-                            (:one-off-id event-key) (assoc :one-off-event-id (:one-off-id event-key)))
-                    notifications (conj (or (:sent-notifications db) []) entry)
-                    capped (vec (take-last 500 notifications))]
-                (assoc db :sent-notifications capped))))))
+                 (update
+                  :schedule-db
+                  (fn [db]
+                    (let [entry         (cond-> {:person-id  person-id
+                                                 :event-date (:date event-key)
+                                                 :type       type
+                                                 :sent-at    (now-str)}
+                                          (:template-id event-key) (assoc :event-template-id (:template-id event-key))
+                                          (:one-off-id event-key)  (assoc :one-off-event-id (:one-off-id event-key)))
+                          notifications (conj (or (:sent-notifications db) []) entry)
+                          capped        (vec (take-last 500 notifications))]
+                      (assoc db :sent-notifications capped))))))
 
 (>defn rotate-token!
   "Generate a new sec-token for a person. Returns the new token."
   [env person-id]
   [map? :string => :string]
-  (let [existing (set (keys (:sec-tokens (read-edn (db-path (:db-folder env))))))
+  (let [existing  (set (keys (:sec-tokens (read-edn (db-path (:db-folder env))))))
         new-token (generate-token existing)]
     (with-state!-> env
-      (ops/rotate-token person-id new-token))
+                   (ops/rotate-token person-id new-token))
     new-token))
 
 (>defn ensure-tokens!
   "Ensure every person has a sec-token."
   [{:keys [db-folder] :as env}]
   [[:map [:db-folder :string]] => any?]
-  (let [db (read-edn (db-path db-folder))
+  (let [db                  (read-edn (db-path db-folder))
         existing-person-ids (set (vals (:sec-tokens db)))
-        missing (remove #(existing-person-ids (:id %)) (:people db))
-        existing (set (keys (:sec-tokens db)))
-        token-map (into {} (map (fn [p] [(:id p) (generate-token existing)])) missing)]
+        missing             (remove #(existing-person-ids (:id %)) (:people db))
+        existing            (set (keys (:sec-tokens db)))
+        token-map           (into {} (map (fn [p] [(:id p) (generate-token existing)])) missing)]
     (when (seq token-map)
       (with-state!-> env
-        (ops/ensure-tokens token-map)))))
+                     (ops/ensure-tokens token-map)))))
 
 ;; =============================================================================
 ;; SMS orchestration (uses with-state!-> for combined ops)
@@ -407,12 +427,12 @@
 (defmethod ig/init-key ::engine
   [_ {:keys [db-folder people twilio-conf base-url notify-at-days-before]}]
   (tel/log! {:level :info :data {:db-folder db-folder}} "Initializing schedule engine")
-  (let [engine {:db-folder db-folder
-                :lock (Object.)
-                :twilio-conf twilio-conf
-                :base-url base-url
+  (let [engine {:db-folder             db-folder
+                :lock                  (Object.)
+                :twilio-conf           twilio-conf
+                :base-url              base-url
                 :notify-at-days-before (or notify-at-days-before [1])
-                :today-str (str (LocalDate/now))}]
+                :today-str             (str (LocalDate/now))}]
     (ensure-db! db-folder people)
     (ensure-tokens! engine)
     (refresh-plan! engine)
@@ -423,13 +443,15 @@
   (tel/log! :info "Shutting down schedule engine"))
 
 (comment
-  (def e (ig/init-key ::engine {:db-folder "/tmp/sr-test"
-                                :people [{:id "p1" :name "Alice" :phone "+1111" :admin? false}
-                                         {:id "p2" :name "Bob" :phone "+2222" :admin? false}
-                                         {:id "p3" :name "Carol" :phone "+3333" :admin? true}]
-                                :twilio-conf {}
-                                :base-url "http://localhost:3000"
-                                :today-str "2026-03-25"}))
+  (def e
+    (ig/init-key ::engine
+                 {:db-folder   "/tmp/sr-test"
+                  :people      [{:id "p1" :name "Alice" :phone "+1111" :admin? false}
+                                {:id "p2" :name "Bob" :phone "+2222" :admin? false}
+                                {:id "p3" :name "Carol" :phone "+3333" :admin? true}]
+                  :twilio-conf {}
+                  :base-url    "http://localhost:3000"
+                  :today-str   "2026-03-25"}))
   (view-plan e)
   (list-people e)
   (note-absence! e "p1" {:date "2026-03-25" :template-id "et-1"})

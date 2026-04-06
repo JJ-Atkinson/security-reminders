@@ -38,6 +38,8 @@ In the REPL:
 
 App runs at `http://localhost:3000/{token}/schedule`.
 
+In dev mode, visit `http://localhost:3000/dev/login` to see a table of all users with direct links to their schedule pages. This is the easiest way to log in as any user during development.
+
 `deps.local.edn` is gitignored and optional for local dependency overrides.
 
 ## Deploying (Application Garden)

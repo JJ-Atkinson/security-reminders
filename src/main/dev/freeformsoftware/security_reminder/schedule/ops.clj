@@ -20,7 +20,8 @@
   "Recompute :schedule-plan from :schedule-db."
   [state today-str]
   (let [db (:schedule-db state)]
-    (assoc state :schedule-plan
+    (assoc state
+           :schedule-plan
            (projection/project-schedule
             (:people db)
             (:event-templates db)
@@ -47,12 +48,12 @@
   [state person-id event-key today-str]
   [::schema/state :string ::schema/event-key ::schema/date-str => map?]
   (let [match-keys (schema/event-key->flat-keys event-key)
-        absence (assoc match-keys :person-id person-id)]
+        absence    (assoc match-keys :person-id person-id)]
     (-> state
         (update :schedule-db
                 (fn [db]
                   (let [existing (some #(when (= (select-keys % (keys absence))
-                                                  absence)
+                                                 absence)
                                           %)
                                        (:absences db))]
                     (if existing
@@ -124,13 +125,15 @@
       (update :schedule-db
               (fn [db]
                 (let [overrides (or (:instance-overrides db) [])
-                      without (vec (remove #(and (= (:event-date %) event-date)
-                                                  (= (:event-template-id %) template-id))
-                                           overrides))]
-                  (assoc db :instance-overrides
-                         (conj without {:event-date event-date
-                                        :event-template-id template-id
-                                        :people-required people-required})))))
+                      without   (vec (remove #(and (= (:event-date %) event-date)
+                                                   (= (:event-template-id %) template-id))
+                                             overrides))]
+                  (assoc db
+                         :instance-overrides
+                         (conj without
+                               {:event-date        event-date
+                                :event-template-id template-id
+                                :people-required   people-required})))))
       (regen-plan today-str)))
 
 (>defn remove-instance-override
@@ -154,10 +157,11 @@
         (update :schedule-db
                 (fn [db]
                   (let [overrides (or (:assignment-overrides db) [])
-                        without (vec (remove #(= (select-keys % (keys match-keys))
-                                                  match-keys)
-                                             overrides))]
-                    (assoc db :assignment-overrides
+                        without   (vec (remove #(= (select-keys % (keys match-keys))
+                                                   match-keys)
+                                               overrides))]
+                    (assoc db
+                           :assignment-overrides
                            (conj without (assoc match-keys :assigned (vec assigned-ids)))))))
         (regen-plan today-str))))
 
@@ -170,7 +174,7 @@
         (update-in [:schedule-db :assignment-overrides]
                    (fn [overrides]
                      (vec (remove #(= (select-keys % (keys match-keys))
-                                       match-keys)
+                                      match-keys)
                                   (or overrides [])))))
         (regen-plan today-str))))
 
@@ -182,7 +186,8 @@
   "Replace a person's token. Caller provides the new token."
   [state person-id new-token]
   [::schema/state :string :string => map?]
-  (update state :schedule-db
+  (update state
+          :schedule-db
           (fn [db]
             (let [cleaned (into {}
                                 (remove (fn [[_tok pid]] (= pid person-id)))
@@ -193,10 +198,11 @@
   "Set tokens for people who don't have one. Caller provides {person-id -> token} map."
   [state token-map]
   [::schema/state map? => map?]
-  (update state :schedule-db
+  (update state
+          :schedule-db
           (fn [db]
             (let [existing-person-ids (set (vals (:sec-tokens db)))
-                  missing-people (remove #(existing-person-ids (:id %)) (:people db))]
+                  missing-people      (remove #(existing-person-ids (:id %)) (:people db))]
               (reduce (fn [db person]
                         (if-let [token (get token-map (:id person))]
                           (update db :sec-tokens assoc token (:id person))
@@ -228,11 +234,11 @@
 (defn- record-notification
   "Add a notification entry to :sent-notifications, capping at `notification-cap`."
   [db person-id event-key type now-str & {:keys [sent-for-reminder-group]}]
-  (let [entry (cond-> (merge (schema/event-key->flat-keys event-key)
-                             {:person-id person-id :type type :sent-at now-str})
-                sent-for-reminder-group (assoc :sent-for-reminder-group sent-for-reminder-group))
+  (let [entry         (cond-> (merge (schema/event-key->flat-keys event-key)
+                                     {:person-id person-id :type type :sent-at now-str})
+                        sent-for-reminder-group (assoc :sent-for-reminder-group sent-for-reminder-group))
         notifications (conj (or (:sent-notifications db) []) entry)
-        capped (vec (take-last notification-cap notifications))]
+        capped        (vec (take-last notification-cap notifications))]
     (assoc db :sent-notifications capped)))
 
 (defn- build-exclusive-windows
@@ -246,10 +252,10 @@
      (fn [i group]
        (let [last? (= i (dec (count sorted)))
              lower (if last? 0 (nth sorted (inc i)))]
-         {:group group
-          :lower lower
+         {:group            group
+          :lower            lower
           :lower-inclusive? last?
-          :upper group}))
+          :upper            group}))
      sorted)))
 
 (>defn compute-pending-reminders
@@ -259,8 +265,8 @@
    a notification for that group gets one."
   [state today-str now-str]
   [::schema/state ::schema/date-str ::schema/iso-datetime => map?]
-  (let [plan (:schedule-plan state)
-        today (LocalDate/parse today-str)
+  (let [plan    (:schedule-plan state)
+        today   (LocalDate/parse today-str)
         windows (build-exclusive-windows (:notify-at-days-before state))]
     (reduce
      (fn [state {:keys [group lower lower-inclusive? upper]}]
@@ -277,20 +283,25 @@
           (fn [state event]
             (reduce
              (fn [state person-id]
-               (let [event-key (:event-key event)
+               (let [event-key     (:event-key event)
                      already-sent? (some #(reminder-sent-for-group? % person-id event-key group)
                                          (get-in state [:schedule-db :sent-notifications]))]
                  (if already-sent?
                    state
                    (-> state
-                       (update :schedule-db record-notification person-id event-key :reminder now-str
+                       (update :schedule-db
+                               record-notification
+                               person-id
+                               event-key
+                               :reminder                now-str
                                :sent-for-reminder-group group)
-                       (update :actions conj
-                               {:type :send-reminder
-                                :person-id person-id
-                                :event-key event-key
-                                :event-label (:label event)
-                                :event-date (:date event)
+                       (update :actions
+                               conj
+                               {:type           :send-reminder
+                                :person-id      person-id
+                                :event-key      event-key
+                                :event-label    (:label event)
+                                :event-date     (:date event)
                                 :reminder-group group})))))
              state
              (:assigned event)))
@@ -304,20 +315,21 @@
    Records notification entries."
   [state today-str now-str]
   [::schema/state ::schema/date-str ::schema/iso-datetime => map?]
-  (let [plan (:schedule-plan state)
-        db (:schedule-db state)
+  (let [plan        (:schedule-plan state)
+        db          (:schedule-db state)
         corrections (notifications/compute-corrections plan (:sent-notifications db) today-str)]
     (reduce
      (fn [state {:keys [person-id event-key action plan-entry]}]
        (-> state
            (update :schedule-db record-notification person-id event-key action now-str)
-           (update :actions conj
-                   {:type :send-correction
-                    :person-id person-id
-                    :event-key event-key
+           (update :actions
+                   conj
+                   {:type            :send-correction
+                    :person-id       person-id
+                    :event-key       event-key
                     :correction-type action
-                    :event-label (:label plan-entry)
-                    :event-date (:date event-key)})))
+                    :event-label     (:label plan-entry)
+                    :event-date      (:date event-key)})))
      state
      corrections)))
 
@@ -325,7 +337,8 @@
 ;; Query helpers
 ;; =============================================================================
 
-(>defn get-token-for-person [state person-id]
+(>defn get-token-for-person
+  [state person-id]
   [::schema/state :string => any?]
   (some (fn [[tok pid]] (when (= pid person-id) tok))
         (get-in state [:schedule-db :sec-tokens])))

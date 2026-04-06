@@ -16,10 +16,12 @@
 
 (def ^:private date-formatter DateTimeFormatter/ISO_LOCAL_DATE)
 
-(defn- parse-date ^LocalDate [^String s]
+(defn- parse-date
+  ^LocalDate [^String s]
   (LocalDate/parse s date-formatter))
 
-(defn- format-date ^String [^LocalDate d]
+(defn- format-date
+  ^String [^LocalDate d]
   (.format d date-formatter))
 
 (defn- day-of-week-to-java
@@ -45,35 +47,35 @@
                                instance-overrides)
          template-events
          (for [template event-templates
-               :let [dow (day-of-week-to-java (:day-of-week template))
-                     ;; Find first matching day on or after anchor
-                     first-day (let [anchor-dow (.getDayOfWeek anchor-date)
-                                     days-ahead (mod (- (.getValue dow) (.getValue anchor-dow)) 7)
-                                     candidate (.plusDays anchor-date days-ahead)]
-                                 (if (.isBefore candidate anchor-date)
-                                   (.plusWeeks candidate 1)
-                                   candidate))]
-               date (->> (iterate #(.plusWeeks ^LocalDate % 1) first-day)
-                         (take-while #(.isBefore ^LocalDate % end-date)))
-               :let [date-str (format-date date)
-                     override-pr (get override-lookup [date-str (:id template)])]]
-           {:event-key {:date date-str
-                        :template-id (:id template)}
-            :label (:label template)
-            :date date-str
-            :time-label (:time-label template)
+               :let     [dow       (day-of-week-to-java (:day-of-week template))
+                         ;; Find first matching day on or after anchor
+                         first-day (let [anchor-dow (.getDayOfWeek anchor-date)
+                                         days-ahead (mod (- (.getValue dow) (.getValue anchor-dow)) 7)
+                                         candidate  (.plusDays anchor-date days-ahead)]
+                                     (if (.isBefore candidate anchor-date)
+                                       (.plusWeeks candidate 1)
+                                       candidate))]
+               date     (->> (iterate #(.plusWeeks ^LocalDate % 1) first-day)
+                             (take-while #(.isBefore ^LocalDate % end-date)))
+               :let     [date-str    (format-date date)
+                         override-pr (get override-lookup [date-str (:id template)])]]
+           {:event-key       {:date        date-str
+                              :template-id (:id template)}
+            :label           (:label template)
+            :date            date-str
+            :time-label      (:time-label template)
             :people-required (or override-pr (:people-required template))})
 
          oneoff-events
-         (for [oo one-off-events
-               :let [d (parse-date (:date oo))]
+         (for [oo    one-off-events
+               :let  [d (parse-date (:date oo))]
                :when (and (not (.isBefore d anchor-date))
                           (.isBefore d end-date))]
-           {:event-key {:date (:date oo)
-                        :one-off-id (:id oo)}
-            :label (:label oo)
-            :date (:date oo)
-            :time-label (:time-label oo)
+           {:event-key       {:date       (:date oo)
+                              :one-off-id (:id oo)}
+            :label           (:label oo)
+            :date            (:date oo)
+            :time-label      (:time-label oo)
             :people-required (:people-required oo)})]
 
      (->> (concat template-events oneoff-events)
@@ -107,12 +109,12 @@
   (if (:template-id (:event-key event))
     ;; Template event: deterministic from calendar position
     (let [^LocalDate d (parse-date (:date event))
-          day-offset (.until (LocalDate/ofEpochDay ref-monday-epoch) d ChronoUnit/DAYS)
-          week-number (quot day-offset 7)
-          tuple [(.getValue (.getDayOfWeek d))
-                 (get time-label-order (:time-label event) 99)
-                 (:label event)]
-          slot (get slot-lookup tuple 0)]
+          day-offset   (.until (LocalDate/ofEpochDay ref-monday-epoch) d ChronoUnit/DAYS)
+          week-number  (quot day-offset 7)
+          tuple        [(.getValue (.getDayOfWeek d))
+                        (get time-label-order (:time-label event) 99)
+                        (:label event)]
+          slot         (get slot-lookup tuple 0)]
       (+ (* week-number (long events-per-week)) slot))
     ;; One-off: stable hash of event-key
     (Math/abs (long (hash (:event-key event))))))
@@ -125,17 +127,17 @@
    Returns events with :assigned [person-id ...] added."
   [people events event-templates]
   [vector? vector? sequential? => vector?]
-  (let [n (count people)
-        max-required (apply max 1 (map :people-required events))
-        slot-lookup (weekly-slot-index event-templates)
+  (let [n               (count people)
+        max-required    (apply max 1 (map :people-required events))
+        slot-lookup     (weekly-slot-index event-templates)
         events-per-week (max 1 (count slot-lookup))]
     (mapv
      (fn [event]
-       (let [ordinal (stable-ordinal event slot-lookup events-per-week)
+       (let [ordinal  (stable-ordinal event slot-lookup events-per-week)
              required (:people-required event)
              assigned (vec (for [j (range required)]
                              (:id (nth people
-                                        (mod (+ (* ordinal max-required) j) n)))))]
+                                       (mod (+ (* ordinal max-required) j) n)))))]
          (assoc event :assigned assigned)))
      events)))
 
@@ -152,7 +154,7 @@
                 (map (fn [o]
                        [(cond-> {:date (:event-date o)}
                           (:event-template-id o) (assoc :template-id (:event-template-id o))
-                          (:one-off-event-id o) (assoc :one-off-id (:one-off-event-id o)))
+                          (:one-off-event-id o)  (assoc :one-off-id (:one-off-event-id o)))
                         (:assigned o)]))
                 overrides)]
       (mapv (fn [event]
@@ -167,13 +169,13 @@
    Only the affected event slot changes — all other events are untouched."
   [people events absences]
   [vector? vector? sequential? => vector?]
-  (let [n (count people)
-        people-ids (mapv :id people)
+  (let [n              (count people)
+        people-ids     (mapv :id people)
         ;; Index absences by [person-id event-key] for fast lookup
-        absence-set (set (map (fn [a]
-                                {:person-id (:person-id a)
-                                 :event-key (schema/flat-keys->event-key a)})
-                              absences))
+        absence-set    (set (map (fn [a]
+                                   {:person-id (:person-id a)
+                                    :event-key (schema/flat-keys->event-key a)})
+                                 absences))
         absence-lookup (fn [person-id event-key]
                          (or (contains? absence-set {:person-id person-id :event-key event-key})
                              (some (fn [a]
@@ -183,21 +185,21 @@
     (first
      (reduce
       (fn [[result-events prev-assigned] idx]
-        (let [event (nth events idx)
-              event-key (:event-key event)
-              assigned (:assigned event)
+        (let [event              (nth events idx)
+              event-key          (:event-key event)
+              assigned           (:assigned event)
               ;; Find which assigned people are absent
-              absent-ids (filterv #(absence-lookup % event-key) assigned)
+              absent-ids         (filterv #(absence-lookup % event-key) assigned)
               ;; All people who declared absent for this event (assigned or not)
-              all-event-absent (set (keep (fn [a]
-                                            (when (schema/flat-record-matches-event-key? a event-key)
-                                              (:person-id a)))
-                                          absences))
+              all-event-absent   (set (keep (fn [a]
+                                              (when (schema/flat-record-matches-event-key? a event-key)
+                                                (:person-id a)))
+                                            absences))
               ;; Adjacent event assignments for avoiding consecutive substitution
               next-base-assigned (if (< (inc idx) (count events))
                                    (set (:assigned (nth events (inc idx))))
                                    #{})
-              adjacent-ids (into (or prev-assigned #{}) next-base-assigned)]
+              adjacent-ids       (into (or prev-assigned #{}) next-base-assigned)]
           (if (empty? absent-ids)
             [(conj result-events (assoc event :absent (vec all-event-absent) :understaffed? false))
              (set assigned)]
@@ -205,14 +207,14 @@
             (let [new-assigned
                   (reduce
                    (fn [current-assigned absent-id]
-                     (let [absent-idx (.indexOf ^java.util.List people-ids absent-id)
+                     (let [absent-idx  (.indexOf ^java.util.List people-ids absent-id)
                            current-set (set current-assigned)
-                           candidates (->> (range 1 n)
-                                           (map #(nth people-ids (mod (+ absent-idx %) n)))
-                                           (remove current-set)
-                                           (remove all-event-absent))
-                           preferred (remove adjacent-ids candidates)
-                           substitute (or (first preferred) (first candidates))]
+                           candidates  (->> (range 1 n)
+                                            (map #(nth people-ids (mod (+ absent-idx %) n)))
+                                            (remove current-set)
+                                            (remove all-event-absent))
+                           preferred   (remove adjacent-ids candidates)
+                           substitute  (or (first preferred) (first candidates))]
                        (if substitute
                          (mapv #(if (= % absent-id) substitute %) current-assigned)
                          current-assigned)))
@@ -220,10 +222,11 @@
                    absent-ids)
                   still-absent (filterv #(contains? all-event-absent %) new-assigned)
                   understaffed? (boolean (seq still-absent))]
-              [(conj result-events (assoc event
-                                         :assigned new-assigned
-                                         :absent (vec all-event-absent)
-                                         :understaffed? understaffed?))
+              [(conj result-events
+                     (assoc event
+                            :assigned      new-assigned
+                            :absent        (vec all-event-absent)
+                            :understaffed? understaffed?))
                (set new-assigned)]))))
       [[] nil]
       (range (count events))))))
@@ -249,17 +252,18 @@
    (project-schedule people event-templates one-off-events absences anchor-date weeks instance-overrides []))
   ([people event-templates one-off-events absences anchor-date weeks instance-overrides assignment-overrides]
    [sequential? sequential? sequential? sequential? any? :int sequential? sequential? => vector?]
-   (let [anchor (if (string? anchor-date) (parse-date anchor-date) anchor-date)
-         sorted-people (vec (sort-by :id people))
-         events (generate-events event-templates one-off-events anchor weeks instance-overrides)
-         assigned-events (base-assignments sorted-people events event-templates)
+   (let [anchor            (if (string? anchor-date) (parse-date anchor-date) anchor-date)
+         sorted-people     (vec (sort-by :id people))
+         events            (generate-events event-templates one-off-events anchor weeks instance-overrides)
+         assigned-events   (base-assignments sorted-people events event-templates)
          overridden-events (apply-assignment-overrides assigned-events assignment-overrides)]
      (apply-absences sorted-people overridden-events absences))))
 
 (comment
-  (def test-people [{:id "p1" :name "Alice"}
-                    {:id "p2" :name "Bob"}
-                    {:id "p3" :name "Carol"}])
+  (def test-people
+    [{:id "p1" :name "Alice"}
+     {:id "p2" :name "Bob"}
+     {:id "p3" :name "Carol"}])
   (def test-templates [{:id "et-1" :label "Wed Evening" :day-of-week 3 :time-label :evening :people-required 2}])
   (project-schedule test-people test-templates [] [] "2026-03-22")
   (project-schedule test-people test-templates [] [] "2026-03-22" 8 [] []))

@@ -70,7 +70,9 @@
       (restart-hard!)
       (suspend-reload-resume!))))
 
-(defn go [] (start))
+(defn go
+  []
+  (start))
 
 (defn engine
   "Returns the engine component from the running system."
@@ -84,8 +86,8 @@
   treated like an atom."
   []
   (let [p ((e->nil (requiring-resolve 'portal.api/open))
-            @portal-instance
-            #_{:app false})]
+           @portal-instance
+           #_{:app false})]
     (reset! portal-instance p)
     (add-tap (e->nil (requiring-resolve 'portal.api/submit)))
     p))
@@ -98,14 +100,12 @@
   (restart-hard!))
 
 (comment
-  ;; === First deploy bootstrap ===
-  ;; After starting the system, add real people:
+  ;; === First deploy bootstrap ===. After starting the system, add real people:
   (require '[dev.freeformsoftware.security-reminder.schedule.engine :as engine])
   (engine/list-people (engine))
   (engine/add-person! (engine) {:name "Alice" :phone "+15551234567" :admin? false})
   (engine/add-person! (engine) {:name "Jarrett" :phone "+15559876543" :admin? true})
-  ;; Get their access URLs:
-  ;; Each add-person! returns the person ID. The token is in the DB.
+  ;; Get their access URLs: Each add-person! returns the person ID. The token is in the DB.
   ;; Look up a token: (engine/get-token-for-person (engine) "p-123456")
   ;; Access URL: http://localhost:3000/{token}/schedule
-  )
+)

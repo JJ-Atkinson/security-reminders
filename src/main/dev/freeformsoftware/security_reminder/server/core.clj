@@ -7,6 +7,7 @@
    [dev.freeformsoftware.security-reminder.server.auth-middleware :as auth-middleware]
    [taoensso.telemere :as tel]
    [ring.middleware.defaults :as ring-defaults]
+   [nextjournal.garden-email :as garden-email]
    [clojure.string :as str])
   (:import
     [org.eclipse.jetty.server Server]))
@@ -46,7 +47,7 @@
 
 (defn handler
   [{:keys [env time-layer] :as config}]
-  (let [config (assoc config :engine (:engine time-layer))
+  (let [config        (assoc config :engine (:engine time-layer))
         ;; Memoize the router constructor so route compilation happens once per
         ;; handler lifetime (fresh closure created on each resume).
         create-router (memoize router/router)]
@@ -57,9 +58,9 @@
                   (auth-middleware/unauthorized-response config))
               (catch Exception e
                 (tel/error! "Handler error" e)
-                {:status 500
+                {:status  500
                  :headers {"Content-Type" "text/plain"}
-                 :body "Internal Server Error"}))))
+                 :body    "Internal Server Error"}))))
         (auth-middleware/wrap-token-auth (:engine time-layer))
         (ring-defaults/wrap-defaults
          (-> (case env
@@ -70,6 +71,7 @@
              (assoc-in [:security :anti-forgery] false)
              (assoc-in [:security :frame-options] :deny)
              (assoc-in [:security :ssl-redirect] false)))
+        (garden-email/wrap-with-email)
         (wrap-static-cache)
         (wrap-robots-header))))
 

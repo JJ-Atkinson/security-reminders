@@ -31,7 +31,7 @@
   (let [;; Remove leading slash
         path (if (str/starts-with? uri "/") (subs uri 1) uri)
         ;; Split on first slash
-        idx (str/index-of path "/")]
+        idx  (str/index-of path "/")]
     (if idx
       [(subs path 0 idx) (str "/" (subs path (inc idx)))]
       ;; No trailing path — token only
@@ -50,9 +50,9 @@
     (if-let [[token remaining-path] (extract-token-and-path (:uri request))]
       (if-let [person (engine/lookup-person-by-token eng token)]
         (handler (assoc request
-                        :person person
+                        :person    person
                         :sec-token token
-                        :uri remaining-path))
+                        :uri       remaining-path))
         ;; Not a valid token — pass through unchanged (may be a no-auth route)
         (handler request))
       (handler request))))

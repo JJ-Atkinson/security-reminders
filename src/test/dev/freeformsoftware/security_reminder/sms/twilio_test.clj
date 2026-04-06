@@ -9,9 +9,9 @@
     ;; This tests that the function doesn't throw and returns failure map
     (let [result (try
                    (twilio/send-sms! {:twilio-account-sid "AC_invalid"
-                                      :twilio-auth-token "invalid"
+                                      :twilio-auth-token  "invalid"
                                       :twilio-from-number "+15551112222"
-                                      :twilio-mock? false}
+                                      :twilio-mock?       false}
                                      "+15559999999"
                                      "Test message")
                    (catch Exception e

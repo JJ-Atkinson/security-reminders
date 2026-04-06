@@ -33,8 +33,8 @@
                   :on-close   (fn [socket _status-code _reason]
                                 (swap! clients disj socket)
                                 #_(tel/log! :info
-                                          ["WebSocket client disconnected"
-                                           {:status _status-code :reason _reason}]))
+                                            ["WebSocket client disconnected"
+                                             {:status _status-code :reason _reason}]))
 
                   :on-error   (fn [socket error]
                                 (swap! clients disj socket)

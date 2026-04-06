@@ -1,5 +1,5 @@
 {:env :prod
- :base-url "https://security-reminder.application.garden"
+ :base-url "https://sec.pathul-dapneb.com"
  :system
  {:dev.freeformsoftware.security-reminder.server.core/server
   {:jetty {:port 7777}}}}

@@ -143,4 +143,4 @@
   (inc-day!)
   ;; Toggle an absence in the UI, then fire corrections immediately
   (unlock-debounce!)
-  )
+)
