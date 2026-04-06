@@ -74,11 +74,12 @@
                            {:readers {'n/ref             reader-nref
                                       'n/reader-file-str reader-file-str}}))
              (reduce deep-merge))
-        full-config (resolve-nrefs full-config)
         ;; Resolve db-folder: use GARDEN_STORAGE in prod if available
+        ;; Must happen BEFORE nref resolution so #n/ref :db-folder picks up the updated value
         full-config (if-let [gs (garden-storage-path)]
                       (assoc full-config :db-folder (str gs "/" (:db-folder full-config "data")))
                       full-config)
+        full-config (resolve-nrefs full-config)
         parsed-config (:system full-config)]
     (ig/load-namespaces parsed-config)
     parsed-config))

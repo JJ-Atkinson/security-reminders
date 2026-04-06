@@ -1,8 +1,11 @@
 # Changelog
 
-## Unreleased 
+## Unreleased
+
+## 2026-04-06
 
 - Allow system to boot when the userdb is broken.
+- Fix the config loading so that the GARDEN_STORAGE env var is respected
 
 ## 2026-04-06
 
