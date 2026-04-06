@@ -28,9 +28,19 @@
           :data-vapid-key   vapid-public-key
           :data-subscribe-url (str "/" sec-token "/push/subscribe")
           :_ (str "init call shouldShowPushButton() then if it remove .hidden from me end "
-                  "on click call subscribePush(my.dataset.vapidKey, my.dataset.subscribeUrl) "
-                  "then add .hidden to me")}
-         "Enable Push Notifications"]]]])))
+                  "on click "
+                  "set my.innerText to 'Enabling...' "
+                  "call subscribePush(my.dataset.vapidKey, my.dataset.subscribeUrl) "
+                  "then if it "
+                  "set my.innerText to 'Enabled!' "
+                  "wait 1s then add .hidden to me "
+                  "else "
+                  "set my.innerText to 'Failed' "
+                  "remove .hidden from #push-status "
+                  "end")}
+         "Enable Push Notifications"]
+        [:p#push-status.hidden.text-sm.text-red-600.mt-2
+         "Push notifications were denied or failed. Check your device notification settings for this app."]]]])))
 
 ;; =============================================================================
 ;; Routes

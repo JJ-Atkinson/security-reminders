@@ -90,18 +90,30 @@ window.shouldShowPushButton = async function() {
 };
 
 window.subscribePush = async function(vapidPublicKey, subscribeUrl) {
-  var reg = await navigator.serviceWorker.ready;
-  var existing = await reg.pushManager.getSubscription();
-  if (existing) return;
+  try {
+    var permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+      console.warn('Push notification permission denied');
+      return false;
+    }
 
-  var sub = await reg.pushManager.subscribe({
-    userVisibleOnly: true,
-    applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
-  });
+    var reg = await navigator.serviceWorker.ready;
+    var existing = await reg.pushManager.getSubscription();
+    if (existing) return true;
 
-  await fetch(subscribeUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(sub.toJSON())
-  });
+    var sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
+    });
+
+    await fetch(subscribeUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(sub.toJSON())
+    });
+    return true;
+  } catch (e) {
+    console.error('Push subscription failed:', e);
+    return false;
+  }
 };
