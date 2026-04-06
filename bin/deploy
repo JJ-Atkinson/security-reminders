@@ -8,37 +8,36 @@ echo "==> Building resources..."
 bin/build-resources
 
 # 2. Update CHANGELOG.md: promote Unreleased to a dated version
-if ! grep -q "^## Unreleased" CHANGELOG.md; then
-  echo "ERROR: No '## Unreleased' section found in CHANGELOG.md"
-  exit 1
-fi
-
 # Extract content between "## Unreleased" and the next "## " heading (or EOF)
-UNRELEASED_CONTENT=$(awk '/^## Unreleased$/{found=1; next} /^## /{found=0} found' CHANGELOG.md)
-if [ -z "$(echo "$UNRELEASED_CONTENT" | tr -d '[:space:]')" ]; then
-  echo "ERROR: No changes listed under '## Unreleased' in CHANGELOG.md"
-  exit 1
+UNRELEASED_CONTENT=""
+if grep -q "^## Unreleased" CHANGELOG.md; then
+  UNRELEASED_CONTENT=$(awk '/^## Unreleased$/{found=1; next} /^## /{found=0} found' CHANGELOG.md)
 fi
 
-echo "==> Promoting Unreleased to $DATE..."
-# Replace "## Unreleased" + its content with a fresh stub + dated section
-awk -v date="$DATE" '
-  /^## Unreleased$/ {
-    print "## Unreleased"
-    print ""
-    print "## " date
-    # skip the original "## Unreleased" line (already printed replacement)
-    next
-  }
-  { print }
-' CHANGELOG.md > CHANGELOG.md.tmp
-mv CHANGELOG.md.tmp CHANGELOG.md
+if [ -z "$(echo "$UNRELEASED_CONTENT" | tr -d '[:space:]')" ]; then
+  echo "==> No unreleased changes in CHANGELOG.md, skipping promotion."
+  COMMIT_MSG="Deploy $DATE"
+else
+  echo "==> Promoting Unreleased to $DATE..."
+  # Replace "## Unreleased" + its content with a fresh stub + dated section
+  awk -v date="$DATE" '
+    /^## Unreleased$/ {
+      print "## Unreleased"
+      print ""
+      print "## " date
+      # skip the original "## Unreleased" line (already printed replacement)
+      next
+    }
+    { print }
+  ' CHANGELOG.md > CHANGELOG.md.tmp
+  mv CHANGELOG.md.tmp CHANGELOG.md
 
-# 3. Build commit message from the promoted changelog entries
-CHANGES=$(echo "$UNRELEASED_CONTENT" | sed '/^$/d' | head -5)
-COMMIT_MSG="Deploy $DATE
+  # 3. Build commit message from the promoted changelog entries
+  CHANGES=$(echo "$UNRELEASED_CONTENT" | sed '/^$/d' | head -5)
+  COMMIT_MSG="Deploy $DATE
 
 $CHANGES"
+fi
 
 # 4. Stage and commit
 echo "==> Committing..."
