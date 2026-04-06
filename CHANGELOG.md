@@ -4,6 +4,10 @@
 
 ## 2026-04-06
 
+- Fix push button not showing on iOS: use hyperscript `init` instead of `on load`, consolidate eligibility check into single async `shouldShowPushButton()`
+
+## 2026-04-06
+
 - Add Web Push notification support (VAPID, RFC 8291 encryption, clj-http-lite delivery)
 - Add Settings page accessible to all users; admin-only pages (Users, Events, Messages, Logs) remain restricted
 - Replace Admin button on schedule page with Settings button for all users

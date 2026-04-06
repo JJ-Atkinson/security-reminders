@@ -27,11 +27,7 @@
          {:class (into ["hidden"] ui.frag/button-classes)
           :data-vapid-key   vapid-public-key
           :data-subscribe-url (str "/" sec-token "/push/subscribe")
-          :_ (str "on load call checkPushEligible() "
-                  "then if the result "
-                  "call checkPushSubscription() "
-                  "then if the result is false remove .hidden from me "
-                  "end "
+          :_ (str "init call shouldShowPushButton() then if it remove .hidden from me end "
                   "on click call subscribePush(my.dataset.vapidKey, my.dataset.subscribeUrl) "
                   "then add .hidden to me")}
          "Enable Push Notifications"]]]])))

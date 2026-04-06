@@ -73,20 +73,20 @@ function urlBase64ToUint8Array(base64String) {
   return outputArray;
 }
 
-window.checkPushEligible = function() {
+window.shouldShowPushButton = async function() {
   if (!('PushManager' in window)) return false;
   if (!('serviceWorker' in navigator)) return false;
   var isStandalone = window.matchMedia('(display-mode: standalone)').matches
                      || navigator.standalone === true;
   if (!isStandalone) return false;
   if (typeof Notification !== 'undefined' && Notification.permission === 'denied') return false;
-  return true;
-};
-
-window.checkPushSubscription = async function() {
-  var reg = await navigator.serviceWorker.ready;
-  var sub = await reg.pushManager.getSubscription();
-  return sub !== null;
+  try {
+    var reg = await navigator.serviceWorker.ready;
+    var sub = await reg.pushManager.getSubscription();
+    return sub === null;
+  } catch (e) {
+    return false;
+  }
 };
 
 window.subscribePush = async function(vapidPublicKey, subscribeUrl) {
