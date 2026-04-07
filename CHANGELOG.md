@@ -4,6 +4,10 @@
 
 ## 2026-04-06
 
+- Fix crash in correction computation when welcome notifications (no event-date) are present
+
+## 2026-04-06
+
 - Improve log viewer: format timestamps as human-readable strings (e.g. "Sun Apr 6, 2026, 17:04.123 CDT") instead of raw instants
 - Fix long unbroken strings in log messages causing horizontal scroll on mobile
 
