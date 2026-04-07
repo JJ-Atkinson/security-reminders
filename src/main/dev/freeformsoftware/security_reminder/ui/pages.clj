@@ -82,14 +82,14 @@
   "Sidebar navigation for admin pages."
   [request active-page]
   (let [sec-token (:sec-token request)
-        admin?   (:admin? (:person request))
-        link     (fn [href label page-key]
-                   [:a
-                    {:href  href
-                     :class (if (= active-page page-key)
-                              ui.frag/selected-link-classes
-                              ui.frag/clickable-link-classes)}
-                    label])]
+        admin?    (:admin? (:person request))
+        link      (fn [href label page-key]
+                    [:a
+                     {:href  href
+                      :class (if (= active-page page-key)
+                               ui.frag/selected-link-classes
+                               ui.frag/clickable-link-classes)}
+                     label])]
     [:div.flex.flex-col
      (link (str "/" sec-token "/schedule") "\u2190 Schedule" nil)
      (link (str "/" sec-token "/admin/settings") "Settings" :settings)

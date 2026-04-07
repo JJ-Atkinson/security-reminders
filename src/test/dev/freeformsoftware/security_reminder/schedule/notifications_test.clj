@@ -134,9 +134,12 @@
 (deftest test-format-correction-email
   (testing "rescind message"
     (let [email (reminders/format-correction-email :rescinded
-                                                   test-person "Wed Evening"
-                                                   "2026-04-01" "https://example.com/tok/schedule"
-                                                   test-plan test-people)]
+                                                   test-person
+                                                   "Wed Evening"
+                                                   "2026-04-01"
+                                                   "https://example.com/tok/schedule"
+                                                   test-plan
+                                                   test-people)]
       (is (map? email))
       (is (string? (:subject email)))
       (is (re-find #"no longer assigned" (:text email)))
@@ -145,27 +148,41 @@
     (let [email (reminders/format-correction-email :assigned
                                                    {:id "p2" :name "Bob" :email "bob@test.local" :admin? false}
                                                    "Sun Morning"
-                                                   "2026-04-05" "https://example.com/tok/schedule"
-                                                   test-plan test-people)]
+                                                   "2026-04-05"
+                                                   "https://example.com/tok/schedule"
+                                                   test-plan
+                                                   test-people)]
       (is (re-find #"assigned" (:text email)))
       (is (re-find #"Sun Morning" (:html email))))))
 
 (deftest test-format-reminder-email-by-group
   (testing "group >= 2 (heads up) message"
-    (let [email (reminders/format-reminder-email test-person "Wed Evening" "2026-04-01"
-                                                 "https://example.com/tok/schedule" 8
-                                                 test-plan test-people)]
+    (let [email (reminders/format-reminder-email test-person
+                                                 "Wed Evening"
+                                                 "2026-04-01"
+                                                 "https://example.com/tok/schedule"
+                                                 8
+                                                 test-plan
+                                                 test-people)]
       (is (re-find #"heads up" (:text email)))
       (is (re-find #"Wed Evening" (:html email)))))
   (testing "group 1 (reminder) message"
-    (let [email (reminders/format-reminder-email test-person "Wed Evening" "2026-04-01"
-                                                 "https://example.com/tok/schedule" 1
-                                                 test-plan test-people)]
+    (let [email (reminders/format-reminder-email test-person
+                                                 "Wed Evening"
+                                                 "2026-04-01"
+                                                 "https://example.com/tok/schedule"
+                                                 1
+                                                 test-plan
+                                                 test-people)]
       (is (re-find #"reminder" (:text email)))
       (is (re-find #"Wed Evening" (:html email)))))
   (testing "nil group (legacy) message"
-    (let [email (reminders/format-reminder-email test-person "Wed Evening" "2026-04-01"
-                                                 "https://example.com/tok/schedule" nil
-                                                 test-plan test-people)]
+    (let [email (reminders/format-reminder-email test-person
+                                                 "Wed Evening"
+                                                 "2026-04-01"
+                                                 "https://example.com/tok/schedule"
+                                                 nil
+                                                 test-plan
+                                                 test-people)]
       (is (re-find #"reminder" (:text email)))
       (is (re-find #"Wed Evening" (:html email))))))

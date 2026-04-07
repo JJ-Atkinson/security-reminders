@@ -10,7 +10,7 @@
    [nextjournal.garden-email :as garden-email]
    [clojure.string :as str])
   (:import
-   [org.eclipse.jetty.server Server]))
+    [org.eclipse.jetty.server Server]))
 
 (set! *warn-on-reflection* true)
 
@@ -66,10 +66,10 @@
         (auth-middleware/wrap-token-auth (:engine time-layer))
         (ring-defaults/wrap-defaults
          (-> (case env
-               (:dev :test)
-               ring-defaults/site-defaults
-               (:prod)
-               ring-defaults/secure-site-defaults)
+                   (:dev :test)
+                   ring-defaults/site-defaults
+                   (:prod)
+                   ring-defaults/secure-site-defaults)
              (assoc-in [:security :anti-forgery] false)
              (assoc-in [:security :frame-options] :deny)
              (assoc-in [:security :ssl-redirect] false)))

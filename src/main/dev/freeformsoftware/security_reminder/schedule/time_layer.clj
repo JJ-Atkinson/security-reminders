@@ -29,16 +29,16 @@
 ;; Scheduler env
 ;; =============================================================================
 
-(>defn
- scheduler-env
- "Enrich the base engine map with time-layer concerns:
+(>defn scheduler-env
+  "Enrich the base engine map with time-layer concerns:
    :today-str and :on-assignment-change (debounce trigger).
    Reads :repl-date from !instance so REPL overrides affect route handlers too."
- [{:keys [engine trigger!]}]
- [[:map [:engine map?] [:trigger! fn?]] => map?]
- (assoc engine
-        :today-str            (effective-today @!instance)
-        :on-assignment-change trigger!))
+  [{:keys [engine trigger!]}]
+  [[:map [:engine map?] [:trigger! fn?]] => map?]
+  (assoc
+   engine
+   :today-str            (effective-today @!instance)
+   :on-assignment-change trigger!))
 
 ;; =============================================================================
 ;; Debounce
@@ -55,8 +55,8 @@
         schedule!      (fn $schedule! [& args]
                          (cancel!)
                          (reset! !existing-call
-                                 (chime/chime-at [(.plus (Instant/now) (Duration/ofMinutes (long delay-mins)))]
-                                                 (fn $chime-fn [_t] (apply f args)))))]
+                           (chime/chime-at [(.plus (Instant/now) (Duration/ofMinutes (long delay-mins)))]
+                                           (fn $chime-fn [_t] (apply f args)))))]
     {:trigger! schedule!
      :cancel!  cancel!}))
 
@@ -121,10 +121,10 @@
    Refreshes plan, computes corrections and reminders in a single transaction."
   []
   (swap! !instance update
-         :repl-date
-         (fn [d]
-           (let [^LocalDate d (or d (LocalDate/now))]
-             (.plusDays d 1))))
+    :repl-date
+    (fn [d]
+      (let [^LocalDate d (or d (LocalDate/now))]
+        (.plusDays d 1))))
   (cron-daily nil)
   (:repl-date @!instance))
 

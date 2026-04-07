@@ -65,7 +65,8 @@
                                                                    [:span event-label]
                                                                    [:span "\u00b7"]
                                                                    [:span (proj/display-date (:event-date n))]))]
-                                                               [:div.text-xs.text-gray-400 (str "Sent: " (:sent-at n))]])))])])))
+                                                               [:div.text-xs.text-gray-400
+                                                                (str "Sent: " (:sent-at n))]])))])])))
 
 ;; =============================================================================
 ;; Logs page

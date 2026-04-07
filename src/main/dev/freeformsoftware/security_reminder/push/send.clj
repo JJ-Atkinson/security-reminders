@@ -5,9 +5,9 @@
    [dev.freeformsoftware.security-reminder.schedule.ops :as ops]
    [taoensso.telemere :as tel])
   (:import
-   [nl.martijndwars.webpush Notification PushService]
-   [org.bouncycastle.jce.provider BouncyCastleProvider]
-   [java.security Security]))
+    [nl.martijndwars.webpush Notification PushService]
+    [org.bouncycastle.jce.provider BouncyCastleProvider]
+    [java.security Security]))
 
 (set! *warn-on-reflection* true)
 
@@ -34,7 +34,7 @@
           status-code  (.getStatusCode status)]
       (cond
         (<= 200 status-code 299) :ok
-        (= 410 status-code)      :gone
+        (= 410 status-code) :gone
         :else
         (do (tel/log! {:level :warn
                        :data  {:status status-code :endpoint (:endpoint subscription)}}
@@ -50,9 +50,9 @@
   "Send a push notification to all subscriptions for a person.
    Removes gone subscriptions from state. Returns updated state."
   [state push-conf person-id payload-map]
-  (let [subs     (filterv #(= (:person-id %) person-id)
-                          (get-in state [:schedule-db :push-subscriptions]))
-        payload  (json/generate-string payload-map)]
+  (let [subs    (filterv #(= (:person-id %) person-id)
+                         (get-in state [:schedule-db :push-subscriptions]))
+        payload (json/generate-string payload-map)]
     (when (seq subs)
       (tel/log! {:level :info
                  :data  {:person-id person-id :count (count subs)}}

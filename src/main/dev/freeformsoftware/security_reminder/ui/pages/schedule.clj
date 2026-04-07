@@ -150,7 +150,8 @@
       (let [env       (time-layer/scheduler-env (:time-layer conf))
             person    (:person request)
             event-key (parse-event-key params)]
-        (engine/with-state!-> env (ops/note-absence (:id person) event-key))
+        (engine/with-state!-> env
+          (ops/note-absence (:id person) event-key))
         (schedule-partial conf request)))))
 
 (defn- handle-absence-toggle-redirect
@@ -162,7 +163,8 @@
       (let [env       (time-layer/scheduler-env (:time-layer conf))
             person    (:person request)
             event-key (parse-event-key params)]
-        (engine/with-state!-> env (ops/note-absence (:id person) event-key))
+        (engine/with-state!-> env
+          (ops/note-absence (:id person) event-key))
         (resp/redirect (str "/" (:sec-token request) "/schedule"))))))
 
 ;; =============================================================================

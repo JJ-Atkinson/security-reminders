@@ -63,7 +63,8 @@
                                  :map  {:justify? true}}]
 
                "swap!->"       "->"
-               ">defn"         "defn"
+               ">defn"         [:arg1-force-nl-body {:list {:hang? false}}]
+               "with-state!->" [:arg1-force-nl-body {:list {:indent 2}}]
                "sp/cond-path"  [:arg1-body {:list {:indent 2}}]
                "case"          :arg1-pair-body}
  :list        {:indent-arg 1}

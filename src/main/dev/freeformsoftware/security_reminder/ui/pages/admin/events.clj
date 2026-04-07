@@ -228,69 +228,70 @@
         ;; Pad or trim assigned-vec to length n
         padded       (into (vec (take n assigned-vec))
                            (repeat (max 0 (- n (count assigned-vec))) nil))]
-    (ui.pages/admin-page-shell conf
-                               request
-                               :events
-                               [:div.p-4.flex.flex-col.gap-4
-                                [:a
-                                 {:href  (str "/" sec-token "/admin/events")
-                                  :class "text-sm text-teal-700 hover:text-teal-900"}
-                                 "\u2190 Back to Events"]
-                                [:div
-                                 [:h2.text-2xl.font-bold "Edit Assigned Users"]
-                                 [:p.text-gray-600.mt-1
-                                  (str (proj/display-date event-date) " \u00b7 " (or (:label entry) "(not in plan window)"))
-                                  (when override
-                                    [:span.text-indigo-600.ml-2 "(currently overridden)"])]]
-                                (when error
-                                  [:div.rounded.border.border-red-300.bg-red-50.p-3.text-sm.text-red-800
-                                   error])
-                                (when-not entry
-                                  [:div.rounded.border.border-yellow-300.bg-yellow-50.p-3.text-sm.text-yellow-800
-                                   "This event is not in the current plan window. Assignment will still be saved."])
-                                ;; Save form
-                                [:form
-                                 {:method "POST"
-                                  :action (str "/" sec-token "/admin/assignments")
-                                  :class  "flex flex-col gap-2"}
-                                 (ui.pages/hidden-input "event-date" event-date)
-                                 (when template-id (ui.pages/hidden-input "template-id" template-id))
-                                 (when one-off-id (ui.pages/hidden-input "one-off-id" one-off-id))
-                                 [:div.flex.flex-col.gap-2
-                                  (for [[i selected-id] (map-indexed vector padded)]
-                                    [:div.flex.items-center.gap-2
-                                     [:span.text-sm.text-gray-500.w-6.text-right (str (inc i) ".")]
-                                     [:select
-                                      {:name  "assigned"
-                                       :class (into ui.frag/input-classes ["flex-1"])}
-                                      [:option {:value ""} "-- Select person --"]
-                                      (for [person people]
-                                        (let [pid (:id person)]
-                                          [:option
-                                           (cond-> {:value pid}
-                                             (= pid selected-id) (assoc :selected true))
-                                           (str (:name person)
-                                                (when (:admin? person) " \u2605"))]))]])]
-                                 [:button
-                                  {:type  "submit"
-                                   :class ["font-bold" "border-2" "py-2" "px-4"
-                                           "bg-teal-600" "text-white" "border-teal-600"
-                                           "hover:bg-teal-700" "hover:border-teal-700"]}
-                                  "Save Assignments"]]
-                                ;; Reset form (only when override exists)
-                                (when override
-                                  [:form
-                                   {:method   "POST"
-                                    :action   (str "/" sec-token "/admin/assignments/delete")
-                                    :onsubmit "return confirm('Reset to auto-assignment? The manual override will be removed.')"}
-                                   (ui.pages/hidden-input "event-date" event-date)
-                                   (when template-id (ui.pages/hidden-input "template-id" template-id))
-                                   (when one-off-id (ui.pages/hidden-input "one-off-id" one-off-id))
-                                   [:button
-                                    {:type  "submit"
-                                     :class (into ui.frag/button-classes
-                                                  ["text-gray-700" "border-gray-400" "hover:bg-gray-100"])}
-                                    "Reset to Auto-Assignment"]])])))
+    (ui.pages/admin-page-shell
+     conf
+     request
+     :events
+     [:div.p-4.flex.flex-col.gap-4
+      [:a
+       {:href  (str "/" sec-token "/admin/events")
+        :class "text-sm text-teal-700 hover:text-teal-900"}
+       "\u2190 Back to Events"]
+      [:div
+       [:h2.text-2xl.font-bold "Edit Assigned Users"]
+       [:p.text-gray-600.mt-1
+        (str (proj/display-date event-date) " \u00b7 " (or (:label entry) "(not in plan window)"))
+        (when override
+          [:span.text-indigo-600.ml-2 "(currently overridden)"])]]
+      (when error
+        [:div.rounded.border.border-red-300.bg-red-50.p-3.text-sm.text-red-800
+         error])
+      (when-not entry
+        [:div.rounded.border.border-yellow-300.bg-yellow-50.p-3.text-sm.text-yellow-800
+         "This event is not in the current plan window. Assignment will still be saved."])
+      ;; Save form
+      [:form
+       {:method "POST"
+        :action (str "/" sec-token "/admin/assignments")
+        :class  "flex flex-col gap-2"}
+       (ui.pages/hidden-input "event-date" event-date)
+       (when template-id (ui.pages/hidden-input "template-id" template-id))
+       (when one-off-id (ui.pages/hidden-input "one-off-id" one-off-id))
+       [:div.flex.flex-col.gap-2
+        (for [[i selected-id] (map-indexed vector padded)]
+          [:div.flex.items-center.gap-2
+           [:span.text-sm.text-gray-500.w-6.text-right (str (inc i) ".")]
+           [:select
+            {:name  "assigned"
+             :class (into ui.frag/input-classes ["flex-1"])}
+            [:option {:value ""} "-- Select person --"]
+            (for [person people]
+              (let [pid (:id person)]
+                [:option
+                 (cond-> {:value pid}
+                   (= pid selected-id) (assoc :selected true))
+                 (str (:name person)
+                      (when (:admin? person) " \u2605"))]))]])]
+       [:button
+        {:type  "submit"
+         :class ["font-bold" "border-2" "py-2" "px-4"
+                 "bg-teal-600" "text-white" "border-teal-600"
+                 "hover:bg-teal-700" "hover:border-teal-700"]}
+        "Save Assignments"]]
+      ;; Reset form (only when override exists)
+      (when override
+        [:form
+         {:method   "POST"
+          :action   (str "/" sec-token "/admin/assignments/delete")
+          :onsubmit "return confirm('Reset to auto-assignment? The manual override will be removed.')"}
+         (ui.pages/hidden-input "event-date" event-date)
+         (when template-id (ui.pages/hidden-input "template-id" template-id))
+         (when one-off-id (ui.pages/hidden-input "one-off-id" one-off-id))
+         [:button
+          {:type  "submit"
+           :class (into ui.frag/button-classes
+                        ["text-gray-700" "border-gray-400" "hover:bg-gray-100"])}
+          "Reset to Auto-Assignment"]])])))
 
 ;; =============================================================================
 ;; Handlers
@@ -310,7 +311,8 @@
         label  (:label params)
         date   (:date params)
         tl     (:time-label params)
-        pr     (some-> (:people-required params) parse-long)
+        pr     (some-> (:people-required params)
+                       parse-long)
         tl-kw  (keyword tl)]
     (cond
       (not (route-utils/valid-name? label))
@@ -338,14 +340,16 @@
     (if (str/blank? event-id)
       (route-utils/bad-request "Event ID is required")
       (let [env (time-layer/scheduler-env time-layer)]
-        (engine/with-state!-> env (ops/remove-one-off event-id))
+        (engine/with-state!-> env
+          (ops/remove-one-off event-id))
         (resp/redirect (str "/" (:sec-token request) "/admin/events"))))))
 
 (defn- handle-update-template
   [{:keys [time-layer] :as _conf} request]
   (let [params      (:params request)
         template-id (:template-id params)
-        pr          (some-> (:people-required params) parse-long)]
+        pr          (some-> (:people-required params)
+                            parse-long)]
     (cond
       (str/blank? template-id)
       (route-utils/bad-request "Template ID is required")
@@ -353,7 +357,8 @@
       (route-utils/bad-request "People required must be between 1 and 50")
       :else
       (let [env (time-layer/scheduler-env time-layer)]
-        (engine/with-state!-> env (ops/update-template template-id {:people-required pr}))
+        (engine/with-state!-> env
+          (ops/update-template template-id {:people-required pr}))
         (resp/redirect (str "/" (:sec-token request) "/admin/events"))))))
 
 (defn- handle-set-override
@@ -361,7 +366,8 @@
   (let [params      (:params request)
         event-date  (:event-date params)
         template-id (:template-id params)
-        pr          (some-> (:people-required params) parse-long)]
+        pr          (some-> (:people-required params)
+                            parse-long)]
     (cond
       (not (route-utils/valid-date? event-date))
       (route-utils/bad-request "Invalid event date")
@@ -371,7 +377,8 @@
       (route-utils/bad-request "People required must be between 1 and 50")
       :else
       (let [env (time-layer/scheduler-env time-layer)]
-        (engine/with-state!-> env (ops/set-instance-override event-date template-id pr))
+        (engine/with-state!-> env
+          (ops/set-instance-override event-date template-id pr))
         (resp/redirect (str "/" (:sec-token request) "/admin/events"))))))
 
 (defn- handle-delete-override
@@ -386,7 +393,8 @@
       (route-utils/bad-request "Template ID is required")
       :else
       (let [env (time-layer/scheduler-env time-layer)]
-        (engine/with-state!-> env (ops/remove-instance-override event-date template-id))
+        (engine/with-state!-> env
+          (ops/remove-instance-override event-date template-id))
         (resp/redirect (str "/" (:sec-token request) "/admin/events"))))))
 
 (defn- handle-set-assignments
@@ -418,7 +426,8 @@
       (render-error "Each person can only be assigned once.")
       :else
       (let [env (time-layer/scheduler-env (:time-layer conf))]
-        (engine/with-state!-> env (ops/set-assignment-override event-key assigned))
+        (engine/with-state!-> env
+          (ops/set-assignment-override event-key assigned))
         (resp/redirect (str "/" (:sec-token request) "/admin/events"))))))
 
 (defn- handle-delete-assignments
@@ -435,7 +444,8 @@
       (route-utils/bad-request "Template ID or One-Off ID is required")
       :else
       (let [env (time-layer/scheduler-env time-layer)]
-        (engine/with-state!-> env (ops/remove-assignment-override event-key))
+        (engine/with-state!-> env
+          (ops/remove-assignment-override event-key))
         (resp/redirect (str "/" (:sec-token request) "/admin/events"))))))
 
 ;; =============================================================================
@@ -444,16 +454,16 @@
 
 (defn routes
   [conf]
-  {"GET /admin/events"             (fn [request] (admin-events-page conf request))
-   "POST /admin/events"            (fn [request] (handle-add-event conf request))
-   "POST /admin/events/delete"     (fn [request] (handle-delete-event conf request))
-   "POST /admin/templates"         (fn [request] (handle-update-template conf request))
-   "POST /admin/overrides"         (fn [request] (handle-set-override conf request))
-   "POST /admin/overrides/delete"  (fn [request] (handle-delete-override conf request))
-   "GET /admin/assignments"        (fn [request]
-                                     (let [event-date (:event-date (:params request))]
-                                       (if-not (route-utils/valid-date? event-date)
-                                         (route-utils/bad-request "Invalid event date")
-                                         (admin-assignment-page conf request))))
-   "POST /admin/assignments"       (fn [request] (handle-set-assignments conf request))
+  {"GET /admin/events"              (fn [request] (admin-events-page conf request))
+   "POST /admin/events"             (fn [request] (handle-add-event conf request))
+   "POST /admin/events/delete"      (fn [request] (handle-delete-event conf request))
+   "POST /admin/templates"          (fn [request] (handle-update-template conf request))
+   "POST /admin/overrides"          (fn [request] (handle-set-override conf request))
+   "POST /admin/overrides/delete"   (fn [request] (handle-delete-override conf request))
+   "GET /admin/assignments"         (fn [request]
+                                      (let [event-date (:event-date (:params request))]
+                                        (if-not (route-utils/valid-date? event-date)
+                                          (route-utils/bad-request "Invalid event date")
+                                          (admin-assignment-page conf request))))
+   "POST /admin/assignments"        (fn [request] (handle-set-assignments conf request))
    "POST /admin/assignments/delete" (fn [request] (handle-delete-assignments conf request))})

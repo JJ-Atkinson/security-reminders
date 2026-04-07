@@ -9,7 +9,7 @@
   (:require
    [huff.core :as huff])
   (:import
-   [malli.core Tag Tags]))
+    [malli.core Tag Tags]))
 
 (set! *warn-on-reflection* true)
 

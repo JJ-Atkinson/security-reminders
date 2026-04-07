@@ -5,7 +5,7 @@
    [com.fulcrologic.guardrails.malli.core :refer [>defn =>]]
    [dev.freeformsoftware.security-reminder.db.schema :as schema])
   (:import
-   [java.time LocalDate]))
+    [java.time LocalDate]))
 
 (set! *warn-on-reflection* true)
 
@@ -30,42 +30,46 @@
        (into {})))
 
 (>defn compute-corrections
-       "Pure function: given the current plan, sent-notifications, and today's date string,
+  "Pure function: given the current plan, sent-notifications, and today's date string,
    compute correction actions needed.
    Returns a vector of {:person-id :event-key :action (:assigned or :rescinded) :plan-entry}."
-       [plan sent-notifications today-str]
-       [sequential? sequential? ::schema/date-str => vector?]
-       (let [today       (LocalDate/parse today-str)
-             latest      (latest-notification-by-person-event sent-notifications)
+  [plan sent-notifications today-str]
+  [sequential? sequential? ::schema/date-str => vector?]
+  (let [today       (LocalDate/parse today-str)
+        latest      (latest-notification-by-person-event sent-notifications)
         ;; Index plan entries by event-key
-             plan-by-key (into {} (map (juxt :event-key identity)) plan)]
-         (reduce-kv
-          (fn [corrections [person-id event-key] notification]
-            (let [plan-entry (get plan-by-key event-key)
-                  event-date (LocalDate/parse (:date event-key))]
+        plan-by-key (into {} (map (juxt :event-key identity)) plan)]
+    (reduce-kv
+     (fn [corrections [person-id event-key] notification]
+       (let [plan-entry (get plan-by-key event-key)
+             event-date (LocalDate/parse (:date event-key))]
          ;; Only process future events that still exist in the plan
-              (if (or (nil? plan-entry) (.isBefore event-date today))
-                corrections
-                (let [currently-assigned? (boolean (some #{person-id} (:assigned plan-entry)))]
-                  (cond
+         (if (or (nil? plan-entry) (.isBefore event-date today))
+           corrections
+           (let [currently-assigned? (boolean (some #{person-id} (:assigned plan-entry)))]
+             (cond
                ;; Was told :assigned/:reminder but no longer assigned -> rescind
-                    (and (#{:assigned :reminder} (:type notification))
-                         (not currently-assigned?))
-                    (conj corrections
-                          {:person-id  person-id
-                           :event-key  event-key
-                           :action     :rescinded
-                           :plan-entry plan-entry})
+               (and
+                (#{:assigned :reminder} (:type notification))
+                (not currently-assigned?))
+               (conj
+                corrections
+                {:person-id  person-id
+                 :event-key  event-key
+                 :action     :rescinded
+                 :plan-entry plan-entry})
 
                ;; Was told :rescinded but now assigned -> assign
-                    (and (= :rescinded (:type notification))
-                         currently-assigned?)
-                    (conj corrections
-                          {:person-id  person-id
-                           :event-key  event-key
-                           :action     :assigned
-                           :plan-entry plan-entry})
+               (and
+                (= :rescinded (:type notification))
+                currently-assigned?)
+               (conj
+                corrections
+                {:person-id  person-id
+                 :event-key  event-key
+                 :action     :assigned
+                 :plan-entry plan-entry})
 
-                    :else corrections)))))
-          []
-          latest)))
+               :else corrections)))))
+     []
+     latest)))

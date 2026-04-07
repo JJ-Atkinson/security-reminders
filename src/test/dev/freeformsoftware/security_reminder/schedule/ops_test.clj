@@ -56,12 +56,16 @@
           event1     (first (filter #(= target-key (:event-key %)) plan1))
 
           ;; Advance to next day (simulate inc-day!)
-          state-day2 (-> state-day1 (assoc :today-str "2026-03-26") ops/refresh-plan)
+          state-day2 (-> state-day1
+                         (assoc :today-str "2026-03-26")
+                         ops/refresh-plan)
           plan2      (:schedule-plan state-day2)
           event2     (first (filter #(= target-key (:event-key %)) plan2))
 
           ;; And again
-          state-day3 (-> state-day2 (assoc :today-str "2026-03-27") ops/refresh-plan)
+          state-day3 (-> state-day2
+                         (assoc :today-str "2026-03-27")
+                         ops/refresh-plan)
           plan3      (:schedule-plan state-day3)
           event3     (first (filter #(= target-key (:event-key %)) plan3))]
       (is (some? event1) "event should exist in day1 window")
@@ -146,7 +150,9 @@
                                         (= 8 (:reminder-group %)))
                                   (:actions state1))
           ;; Advance to day 1 (2026-03-28): same event is now 1 day out
-          state2          (-> state1 (assoc :today-str "2026-03-28") ops/refresh-plan)
+          state2          (-> state1
+                              (assoc :today-str "2026-03-28")
+                              ops/refresh-plan)
           state3          (ops/compute-pending-reminders state2 "2026-03-28T08:00:00")
           group-1-actions (filter #(and (= target-date (:event-date %))
                                         (= 1 (:reminder-group %)))

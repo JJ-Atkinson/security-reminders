@@ -80,27 +80,33 @@
 (defn- preview-email
   "Render a sample email using real DB data. Returns HTML response."
   [engine email-type]
-  (let [people  (engine/list-people engine)
-        person  (first people)
-        plan    (engine/view-plan engine)
-        token   (engine/get-token-for-person engine (:id person))
+  (let [people   (engine/list-people engine)
+        person   (first people)
+        plan     (engine/view-plan engine)
+        token    (engine/get-token-for-person engine (:id person))
         base-url (:base-url engine)
-        link    (str base-url "/" token "/schedule")
+        link     (str base-url "/" token "/schedule")
         ;; Pick the first plan entry for context
-        entry   (first plan)
-        email   (case email-type
-                  :reminder
-                  (reminders/format-reminder-email
-                   person
-                   (or (:label entry) "Wed Evening")
-                   (or (:date entry) "2026-04-01")
-                   link 8 plan people)
-                  :correction
-                  (reminders/format-correction-email
-                   :assigned person
-                   (or (:label entry) "Wed Evening")
-                   (or (:date entry) "2026-04-01")
-                   link plan people))]
+        entry    (first plan)
+        email    (case email-type
+                   :reminder
+                   (reminders/format-reminder-email
+                    person
+                    (or (:label entry) "Wed Evening")
+                    (or (:date entry) "2026-04-01")
+                    link
+                    8
+                    plan
+                    people)
+                   :correction
+                   (reminders/format-correction-email
+                    :assigned
+                    person
+                    (or (:label entry) "Wed Evening")
+                    (or (:date entry) "2026-04-01")
+                    link
+                    plan
+                    people))]
     {:status  200
      :headers {"Content-Type" "text/html" "X-Robots-Tag" "noindex"}
      :body    (:html email)}))
@@ -120,11 +126,11 @@
 
 (defn dev-routes
   [{:keys [engine]}]
-  {"GET /dev/reload-ws"       websocket/reload-handler
-   "GET /dev/login"           (fn [_] (dev-login-page engine))
-   "GET /dev/reminder-email"  (fn [_] (preview-email engine :reminder))
+  {"GET /dev/reload-ws"        websocket/reload-handler
+   "GET /dev/login"            (fn [_] (dev-login-page engine))
+   "GET /dev/reminder-email"   (fn [_] (preview-email engine :reminder))
    "GET /dev/correction-email" (fn [_] (preview-email engine :correction))
-   "GET /dev/welcome-email"   (fn [_] (preview-welcome-email engine))})
+   "GET /dev/welcome-email"    (fn [_] (preview-welcome-email engine))})
 
 ;; =============================================================================
 ;; Route assembly

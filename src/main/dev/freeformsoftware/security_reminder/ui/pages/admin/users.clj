@@ -116,7 +116,8 @@
     (if (str/blank? person-id)
       (route-utils/bad-request "Person ID is required")
       (let [env (time-layer/scheduler-env time-layer)]
-        (engine/with-state!-> env (ops/remove-person person-id))
+        (engine/with-state!-> env
+          (ops/remove-person person-id))
         (resp/redirect (str "/" (:sec-token request) "/admin/users"))))))
 
 ;; =============================================================================

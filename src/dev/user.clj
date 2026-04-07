@@ -26,7 +26,7 @@
   []
   (println "Starting system!")
   (reset! !system
-          (ig/init (#'config/resolve-config! false))))
+    (ig/init (#'config/resolve-config! false))))
 
 (defn stop
   []
@@ -104,14 +104,16 @@
   (require '[dev.freeformsoftware.security-reminder.schedule.engine :as engine]
            '[dev.freeformsoftware.security-reminder.schedule.ops :as ops])
   (engine/list-people (engine))
-  (let [id (str "p-" (System/currentTimeMillis)) token (engine/generate-token)]
+  (let [id    (str "p-" (System/currentTimeMillis))
+        token (engine/generate-token)]
     (engine/with-state!-> (engine)
       (ops/add-person {:id id :name "Alice" :email "alice@example.com" :admin? false})
       (ops/rotate-token id token)))
-  (let [id (str "p-" (System/currentTimeMillis)) token (engine/generate-token)]
+  (let [id    (str "p-" (System/currentTimeMillis))
+        token (engine/generate-token)]
     (engine/with-state!-> (engine)
       (ops/add-person {:id id :name "Jarrett" :email "jarrett@example.com" :admin? true})
       (ops/rotate-token id token)))
   ;; Look up a token: (engine/get-token-for-person (engine) "p-123456")
   ;; Access URL: http://localhost:3000/{token}/schedule
-  )
+)

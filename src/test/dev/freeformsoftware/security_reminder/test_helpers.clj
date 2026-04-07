@@ -26,5 +26,5 @@
      (try
        (f env)
        (finally
-         (ig/halt-key! ::engine/engine eng)
-         (fs/delete-tree tmp-dir))))))
+        (ig/halt-key! ::engine/engine eng)
+        (fs/delete-tree tmp-dir))))))

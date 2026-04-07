@@ -136,37 +136,43 @@
 ;; =============================================================================
 
 (>defn event-key->flat-keys
-       "Convert a canonical event-key to flat storage keys used in absences, overrides, notifications."
-       [event-key]
-       [::event-key => map?]
-       (cond-> {:event-date (:date event-key)}
-         (:template-id event-key) (assoc :event-template-id (:template-id event-key))
-         (:one-off-id event-key)  (assoc :one-off-event-id (:one-off-id event-key))))
+  "Convert a canonical event-key to flat storage keys used in absences, overrides, notifications."
+  [event-key]
+  [::event-key => map?]
+  (cond-> {:event-date (:date event-key)}
+    (:template-id event-key) (assoc :event-template-id (:template-id event-key))
+    (:one-off-id event-key)  (assoc :one-off-event-id (:one-off-id event-key))))
 
 (>defn flat-keys->event-key
-       "Convert flat storage keys back to a canonical event-key."
-       [flat]
-       [[:map [:event-date ::date-str]] => map?]
-       (cond-> {:date (:event-date flat)}
-         (:event-template-id flat) (assoc :template-id (:event-template-id flat))
-         (:one-off-event-id flat)  (assoc :one-off-id (:one-off-event-id flat))))
+  "Convert flat storage keys back to a canonical event-key."
+  [flat]
+  [[:map [:event-date ::date-str]] => map?]
+  (cond-> {:date (:event-date flat)}
+    (:event-template-id flat) (assoc :template-id (:event-template-id flat))
+    (:one-off-event-id flat)  (assoc :one-off-id (:one-off-event-id flat))))
 
 (>defn flat-record-matches-event-key?
-       "Check if a flat-keyed record (absence, notification, etc.) matches a canonical event-key."
-       [record event-key]
-       [map? ::event-key => boolean?]
-       (and (= (:event-date record) (:date event-key))
-            (boolean
-             (or (and (:template-id event-key)
-                      (= (:event-template-id record) (:template-id event-key)))
-                 (and (:one-off-id event-key)
-                      (= (:one-off-event-id record) (:one-off-id event-key)))))))
+  "Check if a flat-keyed record (absence, notification, etc.) matches a canonical event-key."
+  [record event-key]
+  [map? ::event-key => boolean?]
+  (and
+   (= (:event-date record) (:date event-key))
+   (boolean
+    (or
+     (and
+      (:template-id event-key)
+      (= (:event-template-id record) (:template-id event-key)))
+     (and
+      (:one-off-id event-key)
+      (= (:one-off-event-id record) (:one-off-id event-key)))))))
 
 (>defn validate-schedule-db!
-       "Validates schedule-db data against schema. Throws on invalid data."
-       [data]
-       [map? => ::schedule-db]
-       (when-not (m/validate ScheduleDb data)
-         (throw (ex-info "Invalid schedule-db data"
-                         {:errors (m/explain ScheduleDb data)})))
-       data)
+  "Validates schedule-db data against schema. Throws on invalid data."
+  [data]
+  [map? => ::schedule-db]
+  (when-not (m/validate ScheduleDb data)
+    (throw
+     (ex-info
+      "Invalid schedule-db data"
+      {:errors (m/explain ScheduleDb data)})))
+  data)

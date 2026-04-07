@@ -15,16 +15,17 @@
 
 (defn- push-notification-section
   [{:keys [vapid-public-key] :as _conf} request]
-  (let [sec-token (:sec-token request)
-        person    (:person request)
-        push?     (get person :notifications/send-via-push? true)
+  (let [sec-token  (:sec-token request)
+        person     (:person request)
+        push?      (get person :notifications/send-via-push? true)
         toggle-url (str "/" sec-token "/admin/settings/toggle-preference")]
     [:div#push-section
      {:_ "init call initPushSection()"}
      [:h3.text-lg.font-semibold "Push Notifications"]
      [:p.text-sm.text-gray-600 "Get push notifications on this device when installed as an app."]
      (when-not (seq vapid-public-key)
-       [:p.text-sm.text-red-600.font-bold "VAPID keys not configured. Run bin/generate-vapid-keys and set the Garden secrets."])
+       [:p.text-sm.text-red-600.font-bold
+        "VAPID keys not configured. Run bin/generate-vapid-keys and set the Garden secrets."])
 
      ;; State A: Cannot enable (JS picks which sub-message to show)
      [:div#push-state-cannot.hidden.mt-2
@@ -36,11 +37,11 @@
      ;; State B: Can enable
      [:div#push-state-can-enable.hidden.mt-2
       [:button#enable-push-btn
-       {:class             ui.frag/button-classes
-        :data-vapid-key    vapid-public-key
+       {:class              ui.frag/button-classes
+        :data-vapid-key     vapid-public-key
         :data-subscribe-url (str "/" sec-token "/push/subscribe")
-        :data-toggle-url   toggle-url
-        :_ "on click call handleEnablePush(me)"}
+        :data-toggle-url    toggle-url
+        :_                  "on click call handleEnablePush(me)"}
        "Enable Push Notifications"]
       [:p#push-enable-failed.hidden.text-sm.text-red-600.mt-2
        "Push subscription failed. Please contact your admin."]]
@@ -49,12 +50,12 @@
      [:div#push-state-enabled.hidden.mt-2
       [:label.flex.items-center.gap-2
        [:input#push-checkbox
-        {:type     "checkbox"
-         :class    ui.frag/checkbox-classes
-         :checked  push?
-         :hx-post  toggle-url
-         :hx-vals  (json/generate-string {"field" "notifications/send-via-push?"})
-         :hx-swap  "none"}]
+        {:type    "checkbox"
+         :class   ui.frag/checkbox-classes
+         :checked push?
+         :hx-post toggle-url
+         :hx-vals (json/generate-string {"field" "notifications/send-via-push?"})
+         :hx-swap "none"}]
        "Send push notifications to this device"]]]))
 
 (defn- settings-page
@@ -76,12 +77,12 @@
        [:p.text-sm.text-gray-600 "Receive assignment reminders and schedule changes via email."]
        [:label.flex.items-center.gap-2.mt-2
         [:input
-         {:type     "checkbox"
-          :class    ui.frag/checkbox-classes
-          :checked  email?
-          :hx-post  toggle-url
-          :hx-vals  (json/generate-string {"field" "notifications/send-via-email?"})
-          :hx-swap  "none"}]
+         {:type    "checkbox"
+          :class   ui.frag/checkbox-classes
+          :checked email?
+          :hx-post toggle-url
+          :hx-vals (json/generate-string {"field" "notifications/send-via-email?"})
+          :hx-swap "none"}]
         "Send email notifications"]]
 
       ;; Push preference (3-state, client-side detection)

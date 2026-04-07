@@ -28,8 +28,12 @@
 (defn- absence-toggle-url
   "Build a GET URL to toggle absence for an event from email."
   [base-url token event-key]
-  (str base-url "/" token "/absences/toggle?"
-       "event-date=" (:date event-key)
+  (str base-url
+       "/"
+       token
+       "/absences/toggle?"
+       "event-date="
+       (:date event-key)
        (when (:template-id event-key)
          (str "&template-id=" (:template-id event-key)))
        (when (:one-off-id event-key)
@@ -69,10 +73,11 @@
          [:span.text-red-600.font-bold.ml-2 "UNDERSTAFFED"])]
       (when (seq absent-names)
         [:div.mt-1.text-sm "Absent: " (str/join ", " absent-names)])]
-     [:a {:href  (absence-toggle-url base-url token event-key)
-          :class (if is-absent?
-                   "text-green-700 font-bold"
-                   "text-red-700")}
+     [:a
+      {:href  (absence-toggle-url base-url token event-key)
+       :class (if is-absent?
+                "text-green-700 font-bold"
+                "text-red-700")}
       (if is-absent? "I'm back" "I'm out")]]))
 
 ;; =============================================================================
@@ -121,14 +126,15 @@
 
         ;; View in browser button
         [:div.text-center.mb-24
-         [:a {:href  (str base-url "/" token "/schedule")
-              :class "font-bold border-2 py-2 px-4 inline-block"}
+         [:a
+          {:href  (str base-url "/" token "/schedule")
+           :class "font-bold border-2 py-2 px-4 inline-block"}
           "View in Browser"]]
 
         ;; garden-email auto-appends unsubscribe + report-spam footer for subscribed users.
         ;; {{subscribe-link}} is only interpolated server-side for pending (unconfirmed) recipients;
         ;; for already-subscribed recipients the placeholder is left as literal text, so we omit it.
-        ]]))))
+       ]]))))
 
 ;; =============================================================================
 ;; Public API
@@ -144,30 +150,45 @@
         prefix    (if heads-up? "Heads Up" "Reminder")
         display   (proj/display-date event-date)]
     {:subject (str "Security Duty: " event-label " on " display)
-     :text    (str "Hi " (:name person)
+     :text    (str "Hi "
+                   (:name person)
                    (if heads-up?
                      ", heads up: you're assigned to "
                      ", reminder: you're assigned to ")
-                   event-label " on " display
+                   event-label
+                   " on " display
                    ". View schedule & mark absences: " link)
      :html    (email-html
                [:div
                 [:div.text-lg (str prefix ": You're assigned to " event-label)]
                 [:div.text-sm.mt-1 (str "Date: " display)]]
-               plan people-list person base-url token)}))
+               plan
+               people-list
+               person
+               base-url
+               token)}))
 
 (defn format-welcome-email
   "Returns {:subject :text :html} for a welcome email."
   [person base-url token plan people-list]
   {:subject "Welcome to Security Reminder"
-   :text    (str "Hi " (:name person)
+   :text    (str "Hi "
+                 (:name person)
                  ", welcome to Security Reminder!"
-                 " View your schedule: " base-url "/" token "/schedule")
+                 " View your schedule: "
+                 base-url
+                 "/"
+                 token
+                 "/schedule")
    :html    (email-html
              [:div
               [:div.text-lg (str "Welcome, " (:name person) "!")]
               [:div.text-sm.mt-1 "You've been added to the security duty rotation."]]
-             plan people-list person base-url token)})
+             plan
+             people-list
+             person
+             base-url
+             token)})
 
 (defn format-correction-email
   "Returns {:subject :text :html} for a correction."
@@ -180,22 +201,32 @@
       {:subject (str "Schedule Update: No longer assigned " event-label " on " display)
        :text    (str "Hi " (:name person)
                      ", update: you are no longer assigned to "
-                     event-label " on " display
+                     event-label
+                     " on " display
                      ". No action needed. View schedule: " link)
        :html    (email-html
                  [:div
                   [:div.text-lg "Update: You're no longer assigned to " event-label]
                   [:div.text-sm.mt-1 (str "Date: " display " \u2014 No action needed")]]
-                 plan people-list person base-url token)}
+                 plan
+                 people-list
+                 person
+                 base-url
+                 token)}
 
       :assigned
       {:subject (str "Schedule Update: Assigned to " event-label " on " display)
        :text    (str "Hi " (:name person)
                      ", update: you've been assigned to "
-                     event-label " on " display
+                     event-label
+                     " on " display
                      ". View schedule & mark absences: " link)
        :html    (email-html
                  [:div
                   [:div.text-lg "Update: You've been assigned to " event-label]
                   [:div.text-sm.mt-1 (str "Date: " display)]]
-                 plan people-list person base-url token)})))
+                 plan
+                 people-list
+                 person
+                 base-url
+                 token)})))

@@ -15,10 +15,10 @@
 
 (defn- handle-subscribe
   [{:keys [time-layer] :as _conf} request]
-  (let [body      (parse-json-body request)
-        endpoint  (:endpoint body)
-        keys-map  (:keys body)
-        person    (:person request)]
+  (let [body     (parse-json-body request)
+        endpoint (:endpoint body)
+        keys-map (:keys body)
+        person   (:person request)]
     (if (or (not endpoint) (not (:p256dh keys-map)) (not (:auth keys-map)))
       {:status 400 :body "Missing endpoint or keys"}
       (let [env          (time-layer/scheduler-env time-layer)
@@ -32,7 +32,7 @@
           (ops/add-push-subscription subscription))
         (tel/log! {:level :info :data {:person (:name person) :endpoint endpoint}}
                   "Push subscription registered")
-        {:status 200
+        {:status  200
          :headers {"Content-Type" "application/json"}
          :body    (json/generate-string {:ok true})}))))
 
@@ -46,7 +46,7 @@
         (engine/with-state!-> env
           (ops/remove-push-subscription endpoint))
         (tel/log! {:level :info :data {:endpoint endpoint}} "Push subscription removed")
-        {:status 200
+        {:status  200
          :headers {"Content-Type" "application/json"}
          :body    (json/generate-string {:ok true})}))))
 
