@@ -37,6 +37,7 @@
    :env #n/ref :env
    :app-title #n/ref :app-title
    :base-url #n/ref :base-url
+   :git-revision #n/ref :git-revision
    :vapid-public-key #n/ref :vapid-public-key
    :time-layer #ig/ref :dev.freeformsoftware.security-reminder.schedule.time-layer/time-layer
    :logging #ig/ref :dev.freeformsoftware.security-reminder.logging-conf/logging-conf}}}

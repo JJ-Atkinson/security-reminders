@@ -6,24 +6,25 @@
 (defn html-body
   "Wrapper for full HTML page with CSS, JS, and body content.
    Accepts optional :sec-token in conf for PWA manifest link."
-  [{:keys [env sec-token]} & body]
-  (h/html
-   (h/raw "<!DOCTYPE html>\n")
-   [:html
-    [:head
-     [:meta {:charset "UTF-8"}]
-     [:meta {:name "viewport" :content "width=device-width, initial-scale=1.0, viewport-fit=cover"}]
-     [:meta {:name "robots" :content "noindex, nofollow"}]
-     [:meta {:name "theme-color" :content "#fff7ed"}]
-     [:meta {:name "mobile-web-app-capable" :content "yes"}]
-     [:meta {:name "apple-mobile-web-app-status-bar-style" :content "default"}]
-     (when sec-token
-       [:link {:rel "manifest" :href (str "/" sec-token "/manifest.json")}])
-     [:link {:rel "apple-touch-icon" :href "/icons/apple-touch-icon.png"}]
-     [:link {:rel "stylesheet" :href "/css/output.css"}]
-     [:script {:src "/js/bundle.js"}]
-     (when (= env :dev) [:script {:src "/js/dev-ws.js" :defer true}])]
-    [:body body]]))
+  [{:keys [env sec-token git-revision]} & body]
+  (let [v (str "?v=" git-revision)]
+    (h/html
+     (h/raw "<!DOCTYPE html>\n")
+     [:html
+      [:head
+       [:meta {:charset "UTF-8"}]
+       [:meta {:name "viewport" :content "width=device-width, initial-scale=1.0, viewport-fit=cover"}]
+       [:meta {:name "robots" :content "noindex, nofollow"}]
+       [:meta {:name "theme-color" :content "#fff7ed"}]
+       [:meta {:name "mobile-web-app-capable" :content "yes"}]
+       [:meta {:name "apple-mobile-web-app-status-bar-style" :content "default"}]
+       (when sec-token
+         [:link {:rel "manifest" :href (str "/" sec-token "/manifest.json" v)}])
+       [:link {:rel "apple-touch-icon" :href "/icons/apple-touch-icon.png"}]
+       [:link {:rel "stylesheet" :href (str "/css/output.css" v)}]
+       [:script {:src (str "/js/bundle.js" v)}]
+       (when (= env :dev) [:script {:src (str "/js/dev-ws.js" v) :defer true}])]
+      [:body body]])))
 
 (defn background
   "Includes CSRF for HTMX"

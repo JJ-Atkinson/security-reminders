@@ -76,6 +76,8 @@
              (reduce deep-merge))
         ;; Resolve db-folder: use GARDEN_STORAGE in prod if available
         ;; Must happen BEFORE nref resolution so #n/ref :db-folder picks up the updated value
+        full-config (assoc full-config :git-revision
+                           (or (System/getenv "GARDEN_GIT_REVISION") "dev"))
         full-config (if-let [gs (garden-storage-path)]
                       (assoc full-config :db-folder (str gs "/" (:db-folder full-config "data")))
                       full-config)

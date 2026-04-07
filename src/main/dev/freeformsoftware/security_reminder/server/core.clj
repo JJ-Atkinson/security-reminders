@@ -10,7 +10,7 @@
    [nextjournal.garden-email :as garden-email]
    [clojure.string :as str])
   (:import
-    [org.eclipse.jetty.server Server]))
+   [org.eclipse.jetty.server Server]))
 
 (set! *warn-on-reflection* true)
 
@@ -25,15 +25,18 @@
         (throw e)))))
 
 (defn wrap-static-cache
-  "Add Cache-Control headers for static assets (js/css)"
+  "Add Cache-Control headers for static assets."
   [handler]
   (fn [request]
     (let [response (handler request)
           uri      (:uri request)]
       (if (and response
                (or (str/starts-with? uri "/js/")
-                   (str/starts-with? uri "/css/")))
-        (assoc-in response [:headers "Cache-Control"] "public, max-age=0")
+                   (str/starts-with? uri "/css/")
+                   (str/starts-with? uri "/icons/")
+                   (str/ends-with? uri "/manifest.json")
+                   (= uri "/sw.js")))
+        (assoc-in response [:headers "Cache-Control"] "public, max-age=31536000, immutable")
         response))))
 
 (defn wrap-robots-header
@@ -64,10 +67,10 @@
         (auth-middleware/wrap-token-auth (:engine time-layer))
         (ring-defaults/wrap-defaults
          (-> (case env
-                   (:dev :test)
-                   ring-defaults/site-defaults
-                   (:prod)
-                   ring-defaults/secure-site-defaults)
+               (:dev :test)
+               ring-defaults/site-defaults
+               (:prod)
+               ring-defaults/secure-site-defaults)
              (assoc-in [:security :anti-forgery] false)
              (assoc-in [:security :frame-options] :deny)
              (assoc-in [:security :ssl-redirect] false)))
