@@ -4,6 +4,11 @@
 
 ## 2026-04-06
 
+- Improve log viewer: format timestamps as human-readable strings (e.g. "Sun Apr 6, 2026, 17:04.123 CDT") instead of raw instants
+- Fix long unbroken strings in log messages causing horizontal scroll on mobile
+
+## 2026-04-06
+
 - Add per-person notification preferences (`:notifications/send-via-email?`, `:notifications/send-via-push?`) with defaults to enabled
 - Redesign Settings page: always-visible email checkbox, 3-state push section (not installed / enable button / enabled checkbox)
 - Engine skips email or push sending when the person has opted out

@@ -5,7 +5,10 @@
    [dev.freeformsoftware.security-reminder.schedule.engine :as engine]
    [dev.freeformsoftware.security-reminder.schedule.projection :as proj]
    [dev.freeformsoftware.security-reminder.logging.log-buffer :as log-buffer]
-   [zprint.core :as zprint]))
+   [zprint.core :as zprint])
+  (:import [java.time ZoneId]
+           [java.time.format DateTimeFormatter]
+           [java.util Locale]))
 
 (set! *warn-on-reflection* true)
 
@@ -80,6 +83,15 @@
      {:class (str bg " " text)}
      (name level)]))
 
+(def ^:private log-date-formatter
+  (-> (DateTimeFormatter/ofPattern "EEE MMM d, yyyy, HH:mm.SSS z" Locale/US)
+      (.withZone (ZoneId/of "America/Chicago"))))
+
+(defn- format-log-instant
+  "Format a java.time.Instant as a human-readable string in CST/CDT."
+  [^java.time.Instant inst]
+  (.format log-date-formatter inst))
+
 (defn- log-entry-card
   "Render a single log entry as a styled card."
   [entry]
@@ -92,9 +104,9 @@
      {:class row-bg}
      [:div.flex.flex-wrap.items-center.gap-2
       (level-badge level)
-      [:span.text-xs.text-gray-500 (str inst)]
+      [:span.text-xs.text-gray-500 (format-log-instant inst)]
       [:span.text-xs.text-gray-400 ns]]
-     [:div.mt-1.text-sm msg]
+     [:div.mt-1.text-sm {:style "overflow-wrap:break-word;word-break:break-word"} msg]
      (when data
        [:pre.mt-1.text-xs.text-gray-700.bg-gray-100.p-2.rounded.overflow-x-auto
         (zprint/zprint-str data)])
