@@ -19,7 +19,7 @@
        [:meta {:name "mobile-web-app-capable" :content "yes"}]
        [:meta {:name "apple-mobile-web-app-status-bar-style" :content "default"}]
        (when sec-token
-         [:link {:rel "manifest" :href (str "/" sec-token "/manifest.json" v)}])
+         [:link {:rel "manifest" :href (str "/" sec-token "/manifest.json")}])
        [:link {:rel "apple-touch-icon" :href "/icons/apple-touch-icon.png"}]
        [:link {:rel "stylesheet" :href (str "/css/output.css" v)}]
        [:script {:src (str "/js/bundle.js" v)}]

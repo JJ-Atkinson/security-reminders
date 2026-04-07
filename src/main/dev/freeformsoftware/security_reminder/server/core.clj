@@ -34,7 +34,6 @@
                (or (str/starts-with? uri "/js/")
                    (str/starts-with? uri "/css/")
                    (str/starts-with? uri "/icons/")
-                   (str/ends-with? uri "/manifest.json")
                    (= uri "/sw.js")))
         (assoc-in response [:headers "Cache-Control"] "public, max-age=31536000, immutable")
         response))))

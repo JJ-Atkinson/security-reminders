@@ -173,8 +173,7 @@
   "Dynamic PWA manifest with per-user start_url."
   [request]
   {:status  200
-   :headers {"Content-Type"  "application/manifest+json"
-             "Cache-Control" "public, max-age=31536000, immutable"}
+   :headers {"Content-Type" "application/manifest+json"}
    :body    (json/generate-string
              {:name             "Security Reminder"
               :short_name       "Security"

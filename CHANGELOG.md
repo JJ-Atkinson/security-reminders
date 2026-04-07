@@ -4,6 +4,11 @@
 
 ## 2026-04-06
 
+- Add cache busting for static assets (CSS/JS) using GARDEN_GIT_REVISION as query string
+- Set long Cache-Control (1 year, immutable) on static assets so browsers serve from disk cache between deploys
+
+## 2026-04-06
+
 - Fix crash in correction computation when welcome notifications (no event-date) are present
 
 ## 2026-04-06
