@@ -19,8 +19,8 @@
    [taoensso.telemere :as tel]
    [zprint.core :as zp])
   (:import
-    [java.time LocalDate LocalDateTime]
-    [java.time.format DateTimeFormatter]))
+   [java.time LocalDate LocalDateTime]
+   [java.time.format DateTimeFormatter]))
 
 (set! *warn-on-reflection* true)
 
@@ -106,42 +106,42 @@
   "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz")
 
 (>defn generate-token
-  "Generate a random base46 token (12 chars).
+       "Generate a random base46 token (12 chars).
    If existing-tokens set is provided, retries on collision."
-  ([]
-   [=> :string]
-   (generate-token nil))
-  ([existing-tokens]
-   [[:maybe set?] => :string]
-   (let [rng (java.security.SecureRandom.)
-         n   (count base46-chars)]
-     (loop [attempts 0]
-       (let [token (apply str (repeatedly 12 #(nth base46-chars (.nextInt rng n))))]
-         (if (and existing-tokens (contains? existing-tokens token))
-           (if (< attempts 10)
-             (recur (inc attempts))
-             (throw (ex-info "Failed to generate unique token after 10 attempts" {})))
-           token))))))
+       ([]
+        [=> :string]
+        (generate-token nil))
+       ([existing-tokens]
+        [[:maybe set?] => :string]
+        (let [rng (java.security.SecureRandom.)
+              n   (count base46-chars)]
+          (loop [attempts 0]
+            (let [token (apply str (repeatedly 12 #(nth base46-chars (.nextInt rng n))))]
+              (if (and existing-tokens (contains? existing-tokens token))
+                (if (< attempts 10)
+                  (recur (inc attempts))
+                  (throw (ex-info "Failed to generate unique token after 10 attempts" {})))
+                token))))))
 
 (>defn now-str
-  "Current datetime as ISO string."
-  []
-  [=> ::schema/iso-datetime]
-  (.format (LocalDateTime/now) DateTimeFormatter/ISO_LOCAL_DATE_TIME))
+       "Current datetime as ISO string."
+       []
+       [=> ::schema/iso-datetime]
+       (.format (LocalDateTime/now) DateTimeFormatter/ISO_LOCAL_DATE_TIME))
 
 ;; =============================================================================
 ;; State I/O boundary
 ;; =============================================================================
 
 (>defn fetch-state
-  "Read db + plan from disk → state map. Includes config needed by pure ops."
-  [{:keys [db-folder notify-at-days-before today-str]}]
-  [[:map [:db-folder :string]] => map?]
-  {:schedule-db           (or (read-edn (db-path db-folder)) {})
-   :schedule-plan         (or (read-edn (plan-path db-folder)) [])
-   :notify-at-days-before (or notify-at-days-before [1])
-   :today-str             today-str
-   :actions               []})
+       "Read db + plan from disk → state map. Includes config needed by pure ops."
+       [{:keys [db-folder notify-at-days-before today-str]}]
+       [[:map [:db-folder :string]] => map?]
+       {:schedule-db           (or (read-edn (db-path db-folder)) {})
+        :schedule-plan         (or (read-edn (plan-path db-folder)) [])
+        :notify-at-days-before (or notify-at-days-before [1])
+        :today-str             today-str
+        :actions               []})
 
 (defn- send-email!
   "Send an email via garden-email. Returns the result map."
@@ -267,57 +267,57 @@
                                  :url   (str base-url "/" token "/schedule")}))))
 
 (>defn resolve-state!
-  "Process accumulated actions (email sending) and write final state to disk.
+       "Process accumulated actions (email sending) and write final state to disk.
    Returns nil."
-  [{:keys [db-folder on-assignment-change] :as env} state]
-  [map? map? => any?]
-  (let [actions (:actions state)
-        people-by-id (into {} (map (juxt :id identity)) (get-in state [:schedule-db :people]))
-        final-state
-        (reduce
-         (fn [state action]
-           (try
-             (let [person-id (:person-id action)
-                   person    (get people-by-id person-id)]
-               (case (:type action)
-                 :send-reminder
-                 (if-not person
-                   (do
-                     (tel/log! {:level :warn :data {:person-id person-id}} "Skipping reminder: person not found")
-                     state)
-                   (send-reminder-for-event state env person action))
+       [{:keys [db-folder on-assignment-change] :as env} state]
+       [map? map? => any?]
+       (let [actions (:actions state)
+             people-by-id (into {} (map (juxt :id identity)) (get-in state [:schedule-db :people]))
+             final-state
+             (reduce
+              (fn [state action]
+                (try
+                  (let [person-id (:person-id action)
+                        person    (get people-by-id person-id)]
+                    (case (:type action)
+                      :send-reminder
+                      (if-not person
+                        (do
+                          (tel/log! {:level :warn :data {:person-id person-id}} "Skipping reminder: person not found")
+                          state)
+                        (send-reminder-for-event state env person action))
 
-                 :send-correction
-                 (if-not person
-                   (do
-                     (tel/log! {:level :warn :data {:person-id person-id}} "Skipping correction: person not found")
-                     state)
-                   (send-correction-for-event state env person action))
+                      :send-correction
+                      (if-not person
+                        (do
+                          (tel/log! {:level :warn :data {:person-id person-id}} "Skipping correction: person not found")
+                          state)
+                        (send-correction-for-event state env person action))
 
-                 :send-welcome
-                 (if-not person
-                   (do
-                     (tel/log! {:level :warn :data {:person-id person-id}} "Skipping welcome: person not found")
-                     state)
-                   (send-welcome-for-person state env person))
+                      :send-welcome
+                      (if-not person
+                        (do
+                          (tel/log! {:level :warn :data {:person-id person-id}} "Skipping welcome: person not found")
+                          state)
+                        (send-welcome-for-person state env person))
 
                  ;; Unknown action type — skip
-                 (do
-                   (tel/log! {:level :warn :data {:action action}} "Unknown action type")
-                   state)))
-             (catch Exception e
-               (tel/error! {:data {:action action} :msg "Failed to process action"} e)
-               state)))
-         state
-         actions)]
+                      (do
+                        (tel/log! {:level :warn :data {:action action}} "Unknown action type")
+                        state)))
+                  (catch Exception e
+                    (tel/error! {:data {:action action} :msg "Failed to process action"} e)
+                    state)))
+              state
+              actions)]
     ;; Validate and write
-    (schema/validate-schedule-db! (:schedule-db final-state))
-    (write-edn! (db-path db-folder) (:schedule-db final-state))
-    (write-edn! (plan-path db-folder) (:schedule-plan final-state))
+         (schema/validate-schedule-db! (:schedule-db final-state))
+         (write-edn! (db-path db-folder) (:schedule-db final-state))
+         (write-edn! (plan-path db-folder) (:schedule-plan final-state))
     ;; Trigger debounce if there were plan-affecting actions
-    (when on-assignment-change
-      (on-assignment-change))
-    nil))
+         (when on-assignment-change
+           (on-assignment-change))
+         nil))
 
 (defmacro with-state!->
   "Fetch state, thread through pure ops, resolve (email + write).
@@ -334,77 +334,77 @@
 ;; =============================================================================
 
 (>defn view-plan
-  "Returns the materialized plan cache."
-  [{:keys [db-folder]}]
-  [[:map [:db-folder :string]] => any?]
-  (or (read-edn (plan-path db-folder)) []))
+       "Returns the materialized plan cache."
+       [{:keys [db-folder]}]
+       [[:map [:db-folder :string]] => any?]
+       (or (read-edn (plan-path db-folder)) []))
 
 (>defn list-people
-  "Returns the current people vector from the DB."
-  [{:keys [db-folder]}]
-  [[:map [:db-folder :string]] => any?]
-  (:people (read-edn (db-path db-folder))))
+       "Returns the current people vector from the DB."
+       [{:keys [db-folder]}]
+       [[:map [:db-folder :string]] => any?]
+       (:people (read-edn (db-path db-folder))))
 
 (>defn view-db
-  "Returns the full schedule-db."
-  [{:keys [db-folder]}]
-  [[:map [:db-folder :string]] => any?]
-  (read-edn (db-path db-folder)))
+       "Returns the full schedule-db."
+       [{:keys [db-folder]}]
+       [[:map [:db-folder :string]] => any?]
+       (read-edn (db-path db-folder)))
 
 (>defn lookup-person-by-token
-  "Returns person map if token is valid, nil otherwise."
-  [{:keys [db-folder]} token]
-  [[:map [:db-folder :string]] :string => any?]
-  (let [db        (read-edn (db-path db-folder))
-        person-id (get (:sec-tokens db) token)]
-    (when person-id
-      (some #(when (= (:id %) person-id) %) (:people db)))))
+       "Returns person map if token is valid, nil otherwise."
+       [{:keys [db-folder]} token]
+       [[:map [:db-folder :string]] :string => any?]
+       (let [db        (read-edn (db-path db-folder))
+             person-id (get (:sec-tokens db) token)]
+         (when person-id
+           (some #(when (= (:id %) person-id) %) (:people db)))))
 
 (>defn get-token-for-person
-  "Look up the current token for a person-id."
-  [{:keys [db-folder]} person-id]
-  [[:map [:db-folder :string]] :string => any?]
-  (let [db (read-edn (db-path db-folder))]
-    (some
-     (fn [[tok pid]] (when (= pid person-id) tok))
-     (:sec-tokens db))))
+       "Look up the current token for a person-id."
+       [{:keys [db-folder]} person-id]
+       [[:map [:db-folder :string]] :string => any?]
+       (let [db (read-edn (db-path db-folder))]
+         (some
+          (fn [[tok pid]] (when (= pid person-id) tok))
+          (:sec-tokens db))))
 
 (>defn list-sent-notifications
-  "Returns all sent-notifications reverse-sorted by :sent-at (newest first)."
-  [{:keys [db-folder]}]
-  [[:map [:db-folder :string]] => vector?]
-  (let [db (read-edn (db-path db-folder))]
-    (vec (sort-by :sent-at #(compare %2 %1) (:sent-notifications db)))))
+       "Returns all sent-notifications reverse-sorted by :sent-at (newest first)."
+       [{:keys [db-folder]}]
+       [[:map [:db-folder :string]] => vector?]
+       (let [db (read-edn (db-path db-folder))]
+         (vec (sort-by :sent-at #(compare %2 %1) (:sent-notifications db)))))
 
 (>defn reminder-already-sent?
-  "Check if a reminder was already sent for this person+event."
-  [{:keys [db-folder]} person-id event-key]
-  [[:map [:db-folder :string]] :string ::schema/event-key => any?]
-  (let [db (read-edn (db-path db-folder))]
-    (some
-     (fn [r]
-       (and
-        (= :reminder (:type r))
-        (= (:person-id r) person-id)
-        (= (:event-date r) (:date event-key))
-        (or
-         (and
-          (:template-id event-key)
-          (= (:event-template-id r) (:template-id event-key)))
-         (and
-          (:one-off-id event-key)
-          (= (:one-off-event-id r) (:one-off-id event-key))))))
-     (:sent-notifications db))))
+       "Check if a reminder was already sent for this person+event."
+       [{:keys [db-folder]} person-id event-key]
+       [[:map [:db-folder :string]] :string ::schema/event-key => any?]
+       (let [db (read-edn (db-path db-folder))]
+         (some
+          (fn [r]
+            (and
+             (= :reminder (:type r))
+             (= (:person-id r) person-id)
+             (= (:event-date r) (:date event-key))
+             (or
+              (and
+               (:template-id event-key)
+               (= (:event-template-id r) (:template-id event-key)))
+              (and
+               (:one-off-id event-key)
+               (= (:one-off-event-id r) (:one-off-id event-key))))))
+          (:sent-notifications db))))
 
 (>defn get-push-subscriptions-for-person
-  "Returns push subscriptions for a person-id."
-  [{:keys [db-folder]} person-id]
-  [[:map [:db-folder :string]] :string => any?]
-  (let [db (read-edn (db-path db-folder))]
-    (vec
-     (filter
-      #(= (:person-id %) person-id)
-      (:push-subscriptions db)))))
+       "Returns push subscriptions for a person-id."
+       [{:keys [db-folder]} person-id]
+       [[:map [:db-folder :string]] :string => any?]
+       (let [db (read-edn (db-path db-folder))]
+         (vec
+          (filter
+           #(= (:person-id %) person-id)
+           (:push-subscriptions db)))))
 
 ;; =============================================================================
 ;; Integrant lifecycle
@@ -414,8 +414,8 @@
   [_
    {:keys [db-folder db-path people base-url notify-at-days-before
            vapid-public-key vapid-private-key vapid-subject]}]
-  (tel/log! {:level :info :data {:db-folder db-folder}} "Initializing schedule engine")
   (let [db-folder (or db-folder (apply fs/path (remove nil? db-path)))
+        _ (tel/log! {:level :info :data {:db-folder db-folder}} "Initializing schedule engine")
         engine {:db-folder             db-folder
                 :lock                  (Object.)
                 :base-url              base-url
