@@ -41,6 +41,7 @@
             pkgs.nodePackages.npm
             pkgs.mprocs
             pkgs.ripgrep
+            pkgs.ffuf
             garden-cli.packages.${system}.default
           ] ++ runtimeDeps;
         };
