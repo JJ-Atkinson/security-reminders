@@ -412,10 +412,11 @@
 
 (defmethod ig/init-key ::engine
   [_
-   {:keys [db-folder people base-url notify-at-days-before
+   {:keys [db-folder db-path people base-url notify-at-days-before
            vapid-public-key vapid-private-key vapid-subject]}]
   (tel/log! {:level :info :data {:db-folder db-folder}} "Initializing schedule engine")
-  (let [engine {:db-folder             db-folder
+  (let [db-folder (or db-folder (apply fs/path (remove nil? db-path)))
+        engine {:db-folder             db-folder
                 :lock                  (Object.)
                 :base-url              base-url
                 :notify-at-days-before (or notify-at-days-before [1])

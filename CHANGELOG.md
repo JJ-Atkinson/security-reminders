@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 2026-04-09
+
+- Refactor config loading: extract env var reads into `read-env-config!`, merge as last config source instead of inline mutation
+- Rename `:db-folder` to `:db-path` (vector of path segments with nref support); engine resolves via `fs/path`
+- Namespace env-sourced config keys under `:managed/` (git-revision, vapid-*, garden-storage-root)
+- Update zprint config: fix `>defn` formatting to match `defn` indent style, add `with-state!->` formatting
+
 ## 2026-04-06
 
 - Add cache busting for static assets (CSS/JS) using GARDEN_GIT_REVISION as query string

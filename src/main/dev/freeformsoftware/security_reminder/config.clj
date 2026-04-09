@@ -23,11 +23,6 @@
                 a
                 b)))
 
-(defn- garden-storage-path
-  "Returns the GARDEN_STORAGE path if set, nil otherwise."
-  []
-  (System/getenv "GARDEN_STORAGE"))
-
 (defn read-config-files!
   [enable-prod?]
   (keep (fn [s]
@@ -41,6 +36,16 @@
         [(io/resource "config/config.edn")
          (when-not enable-prod? (io/resource "config/secrets.edn"))
          (when enable-prod? (io/resource "config/prod-config.edn"))]))
+
+(defn read-env-config!
+  [enable-prod?]
+  (merge
+   {:managed/git-revision (or (System/getenv "GARDEN_GIT_REVISION") "dev")}
+   (when enable-prod?
+     {:managed/garden-storage-root (System/getenv "GARDEN_STORAGE")
+      :managed/vapid-public-key    (System/getenv "VAPID_PUBLIC_KEY")
+      :managed/vapid-private-key   (System/getenv "VAPID_PRIVATE_KEY")
+      :managed/vapid-subject       (System/getenv "VAPID_SUBJECT")})))
 
 (defn reader-nref
   [key]
@@ -69,28 +74,15 @@
 (defn resolve-config!
   [enable-prod?]
   (let [full-config
-        (->> (read-config-files! enable-prod?)
-             (map (partial ig/read-string
-                           {:readers {'n/ref             reader-nref
-                                      'n/reader-file-str reader-file-str}}))
-             (reduce deep-merge))
-        ;; Resolve db-folder: use GARDEN_STORAGE in prod if available. Must happen BEFORE nref resolution so #n/ref
-        ;; :db-folder picks up the updated value
-        full-config (assoc full-config
-                           :git-revision
-                           (or (System/getenv "GARDEN_GIT_REVISION") "dev"))
-        full-config (if-let [gs (garden-storage-path)]
-                      (assoc full-config :db-folder (str gs "/" (:db-folder full-config "data")))
-                      full-config)
-        ;; Resolve VAPID keys from env vars (prod) if not already in config (dev)
-        full-config (cond-> full-config
-                      (not (:vapid-public-key full-config))
-                      (assoc :vapid-public-key (System/getenv "VAPID_PUBLIC_KEY"))
-                      (not (:vapid-private-key full-config))
-                      (assoc :vapid-private-key (System/getenv "VAPID_PRIVATE_KEY"))
-                      (not (:vapid-subject full-config))
-                      (assoc :vapid-subject (System/getenv "VAPID_SUBJECT")))
+        (as-> (read-config-files! enable-prod?) $
+          (map (partial ig/read-string
+                        {:readers {'n/ref             reader-nref
+                                   'n/reader-file-str reader-file-str}})
+               $)
+          (concat $ [(read-env-config! enable-prod?)])
+          (reduce deep-merge $))
         full-config (resolve-nrefs full-config)
         parsed-config (:system full-config)]
     (ig/load-namespaces parsed-config)
     parsed-config))
+

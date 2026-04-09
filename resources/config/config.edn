@@ -2,7 +2,7 @@
  :app-title "Security Reminder"
  :log-level :info
  :base-url "http://localhost:3000"
- :db-folder "data"
+ :db-path [#n/ref :managed/garden-storage-root "data"]
 
  :people [{:id "p1" :name "Alice" :email "alice@example.com" :admin? false}
           {:id "p2" :name "Bob" :email "bob@example.com" :admin? false}
@@ -20,13 +20,13 @@
   {:log-level #n/ref :log-level}
 
   :dev.freeformsoftware.security-reminder.schedule.engine/engine
-  {:db-folder #n/ref :db-folder
+  {:db-path #n/ref :db-path
    :people #n/ref :people
    :base-url #n/ref :base-url
    :notify-at-days-before [8 1]
-   :vapid-public-key #n/ref :vapid-public-key
-   :vapid-private-key #n/ref :vapid-private-key
-   :vapid-subject #n/ref :vapid-subject}
+   :vapid-public-key #n/ref :managed/vapid-public-key
+   :vapid-private-key #n/ref :managed/vapid-private-key
+   :vapid-subject #n/ref :managed/vapid-subject}
 
   :dev.freeformsoftware.security-reminder.schedule.time-layer/time-layer
   {:engine #ig/ref :dev.freeformsoftware.security-reminder.schedule.engine/engine
@@ -37,7 +37,7 @@
    :env #n/ref :env
    :app-title #n/ref :app-title
    :base-url #n/ref :base-url
-   :git-revision #n/ref :git-revision
-   :vapid-public-key #n/ref :vapid-public-key
+   :git-revision #n/ref :managed/git-revision
+   :vapid-public-key #n/ref :managed/vapid-public-key
    :time-layer #ig/ref :dev.freeformsoftware.security-reminder.schedule.time-layer/time-layer
    :logging #ig/ref :dev.freeformsoftware.security-reminder.logging-conf/logging-conf}}}
