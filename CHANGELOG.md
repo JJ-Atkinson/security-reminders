@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Sample PR 1 test entry (safe to remove)
+
 ## 2026-04-09
 
 - Refactor config loading: extract env var reads into `read-env-config!`, merge as last config source instead of inline mutation
